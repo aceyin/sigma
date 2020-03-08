@@ -1,16 +1,15 @@
 {application, sigma,
- [{description, "An OTP application"},
-  {vsn, "0.1.0"},
-  {registered, []},
-  {mod, { sigma_app, []}},
-  {applications,
-   [kernel,
-    stdlib
-   ]},
-  {env,[]},
-  {modules, []},
+  [{description, "An Erlang game server framework"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {mod, {sigma_app, []}},
+    {applications,
+      [kernel, stdlib, sasl]
+    },
+    {env, []},
+    {modules, []},
 
-  {maintainers, []},
-  {licenses, ["Apache 2.0"]},
-  {links, []}
- ]}.
+    {maintainers, []},
+    {licenses, ["Apache 2.0"]},
+    {links, []}
+  ]}.
