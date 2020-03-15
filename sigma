@@ -1,0 +1,16 @@
+#!/usr/bin/env escript
+
+%% main process
+main([Mode|Command]) ->
+    try
+        io:format("factorial ~w ~w\n", [Mode,Command])
+    catch
+        _:_ ->
+            usage()
+    end;
+main(_) ->
+    usage().
+
+usage() ->
+    io:format("usage: sigma <Command> [Mode]\n"),
+    halt(1).
