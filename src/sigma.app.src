@@ -3,9 +3,7 @@
     {vsn, "0.1.0"},
     {registered, []},
     {mod, {sigma_app, []}},
-    {applications,
-      [kernel, stdlib, sasl]
-    },
+    {applications, [kernel, stdlib, sasl]},
     {env, []},
     {modules, []},
 

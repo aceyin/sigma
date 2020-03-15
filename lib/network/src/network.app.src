@@ -1,8 +1,8 @@
 {application, network,
   [{description, "Network library"},
     {vsn, "0.1.0"},
-    {registered, [network]},
-    {applications, [kernel, stdlib, sasl]},
+    {registered, []},
+    {applications, [kernel, stdlib, sasl, config]},
     {env, []},
     {modules, []},
 

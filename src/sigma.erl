@@ -14,5 +14,5 @@
 
 %%% start the game server.
 server_start() ->
-  logger:info("Starting server ..."),
+
   ok.

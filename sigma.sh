@@ -67,8 +67,8 @@ SHELL_COMMAND=${COMMANDS[1]}
 
 ## main process
 if [ $# == 0 ]; then
-    show_help
-    exit 1
+  show_help
+  exit 1
 fi
 # read script args
 while getopts ":m::" opt; do
@@ -83,18 +83,18 @@ while getopts ":m::" opt; do
   esac
 done
 
-shift $(($OPTIND-1))
+shift $(($OPTIND - 1))
 SHELL_COMMAND=$1
 
 # echo "SHELL_COMMAND=$SHELL_COMMAND"
 
-#erl +P $ERL_PROCESSES \
-#    +K $POLL \
-#    -smp $SMP \
-#    -pa ../ebin \
-#    -name $NODE_NAME \
-#    -setcookie $COOKIE \
-#    -boot start_sasl \
-#    -config server.config \
-#    -kernel error_logger \{file,\""$LOG_PATH"\"\} \
-#    -s main server_start
+erl +P $ERL_PROCESSES \
+  +K $POLL \
+  -smp $SMP \
+  -pa ../ebin \
+  -name NODE_NAME \
+  -setcookie COOKIE \
+  -boot start_sasl \
+  -config server.config \
+  -kernel error_logger \{file,\""$LOG_PATH"\"\} \
+  -s sigma server_start
