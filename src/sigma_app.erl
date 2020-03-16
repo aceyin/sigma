@@ -15,7 +15,7 @@
 %%====================================================================
 
 start(_StartType, _StartArgs) ->
-  application:start(config),
+%%  application:start(config),
   sigma_sup:start_link().
 
 %%--------------------------------------------------------------------
