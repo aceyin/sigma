@@ -41,3 +41,13 @@ keys_test() ->
   io:format("keys =~p~n", [Keys]),
   Expect = [env],
   ?assertEqual(Expect, Keys).
+
+load_test() ->
+  File = "/Users/ace/Documents/workspace/erlang/sigma/test/sample.config",
+  {ok, Result} = file:consult(File),
+  io:format("Content : ~p~n", [Result]),
+%%  Loaded = config:load(File),
+  ?assertEqual(Result, 1),
+  ok.
+
+

@@ -47,22 +47,32 @@ get(Name) -> get(Name, none).
 -spec get(atom() | [atom()], any()) -> any().
 get(Name, Default) when not is_list(Name) ->
   io:format("1 get, Name=~p~n", [Name]),
-  case application:get_env(sigma, Name) of
+  case application:get_env(?MODULE, Name) of
     undefined -> Default;
     {ok, Ret} -> Ret
   end;
 get([Name], Default) ->
   io:format("2 get, Name=~p~n", [Name]),
-  case application:get_env(sigma, Name) of
+  case application:get_env(?MODULE, Name) of
     undefined -> Default;
     {ok, Ret} -> Ret
   end;
 get([Name | Keys], Default) ->
   io:format("3 get, Name=~p~n", [Name]),
-  case application:get_env(sigma, Name) of
+  case application:get_env(?MODULE, Name) of
     undefined -> Default;
     {ok, Map} -> get_map_item(Map, Keys, Default)
   end.
+
+%% @doc
+%% Set the config item to the given value.
+%% If the config already exists, replace it;
+%% otherwise create a new one.
+%% @end
+-spec set(atom()|[atom()], any()) -> ok.
+set(Name, Value) when is_atom(Name) ->
+  application:set_env(?MODULE, Name, Value),
+  ok.
 
 %% @doc
 %% Get all the keys of the application config.
@@ -72,6 +82,17 @@ names() ->
   All = application:get_all_env(sigma),
   List = [Key || {Key, _} <- All],
   List.
+
+%% @doc
+%% Dynamic load a config file into system config.
+%% @end
+-spec load(string()) -> ok | {error, string()}.
+load(FileName) ->
+  case filelib:is_file(FileName) of
+    false -> {error, io:format("~p is not a file.", [FileName])};
+    true ->
+      file:consult(FileName)
+  end.
 
 %%====================================================================
 %% Internal functions

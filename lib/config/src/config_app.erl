@@ -1,11 +1,11 @@
 %%%-------------------------------------------------------------------
-%% @doc sigma public API
+%% @doc config public API
 %% @end
 %%%-------------------------------------------------------------------
 
--module(sigma_app).
-
+-module(config_app).
 -behaviour(application).
+-include("keys.hrl").
 
 %% Application callbacks
 -export([start/2, stop/1]).
@@ -13,17 +13,14 @@
 %%====================================================================
 %% API
 %%====================================================================
-
 start(_StartType, _StartArgs) ->
-  application:start(config),
-  Env = config:get([env, erl_max_ports]),
-  io:format("####### base_dir: ~p~n", [os:getenv("base_dir")]),
-  Files = filelib:wildcard("/Users/ace/Documents/workspace/erlang/sigma/cnf/*.config"),
-  io:format("file list: ~p~n", [Files]),
-  io:format("### all envs ~p", [Env]),
-  {ok, Sup} = sigma_sup:start_link(),
-  {ok, Sup}.
-
+  io:format("@@@@@@@@@@@@@@@@"),
+  {ok, Sup} = config_sup:start_link(),
+  BaseDir = os:getenv(?BASE_DIR),
+  io:format("base_dir is:~p~n", [BaseDir]),
+%%  Files = file:list_dir(),
+%%  {ok, Sup}.
+  error.
 %%--------------------------------------------------------------------
 stop(_State) ->
   ok.

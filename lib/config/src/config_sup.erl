@@ -1,9 +1,9 @@
 %%%-------------------------------------------------------------------
-%% @doc sigma top level supervisor.
+%% @doc config top level supervisor.
 %% @end
 %%%-------------------------------------------------------------------
 
--module(sigma_sup).
+-module(config_sup).
 
 -behaviour(supervisor).
 
@@ -20,7 +20,7 @@
 %%====================================================================
 
 start_link() ->
-  supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 %%====================================================================
 %% Supervisor callbacks
@@ -31,7 +31,7 @@ start_link() ->
 %% Before OTP 18 tuples must be used to specify a child. e.g.
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-  {ok, {{one_for_all, 0, 1}, []}}.
+    {ok, { {one_for_all, 0, 1}, []} }.
 
 %%====================================================================
 %% Internal functions
