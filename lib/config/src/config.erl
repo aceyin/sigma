@@ -1,7 +1,7 @@
 -module(config).
 
 %% API exports
--export([get/1, get/2, names/0]).
+-export([get/1, get/2, keys/1, load/1]).
 
 %%====================================================================
 %% API functions
@@ -21,7 +21,7 @@ get(Name) -> get(Name, none).
 %% ```
 %% [{sigma, [
 %%  {database, #{
-%%    cn => #{
+%%    mysql => #{
 %%      host => "10.3.0.1",
 %%      port => 3306,
 %%      user => "root",
@@ -34,7 +34,7 @@ get(Name) -> get(Name, none).
 %% config:get(database) will return a map:
 %% ```
 %% #{
-%%   cn => #{
+%%   mysql => #{
 %%     host => "10.3.0.1",
 %%     port => 3306,
 %%     user => "root",
@@ -42,7 +42,7 @@ get(Name) -> get(Name, none).
 %%   }
 %% }
 %% ```
-%% config:get([database, cn, host]) will return "10.3.0.1"
+%% config:get([database, mysql, host]) will return "10.3.0.1"
 %% @end
 -spec get(atom() | [atom()], any()) -> any().
 get(Name, Default) when not is_list(Name) ->
@@ -77,21 +77,28 @@ set(Name, Value) when is_atom(Name) ->
 %% @doc
 %% Get all the keys of the application config.
 %% @end
--spec names() -> [atom()].
-names() ->
-  All = application:get_all_env(sigma),
-  List = [Key || {Key, _} <- All],
-  List.
+-spec keys(atom()) -> [atom()].
+keys(Name) -> Name:all_keys_of_it().
 
 %% @doc
 %% Dynamic load a config file into system config.
 %% @end
 -spec load(string()) -> ok | {error, string()}.
-load(FileName) ->
-  case filelib:is_file(FileName) of
-    false -> {error, io:format("~p is not a file.", [FileName])};
+load(FilePath) ->
+  case filelib:is_file(FilePath) of
+    false -> {error, io:format("~p is not a file.", [FilePath])};
     true ->
-      file:consult(FileName)
+      BaseName = filename:basename(FilePath),
+      case file:consult(FilePath) of
+        {ok, TermList} ->
+          Mod = list_to_atom(filename:rootname(BaseName)),
+          Bin = compiler:compile(Mod, TermList),
+          code:purge(Mod),
+          {module, Mod} = code:load_binary(Mod, atom_to_list(Mod) ++ ".erl", Bin),
+          ok;
+        Error ->
+          {error, io:format("Error while parse config file ~p, reason: ~p~n", [BaseName, Error])}
+      end
   end.
 
 %%====================================================================

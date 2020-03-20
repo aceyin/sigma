@@ -37,7 +37,7 @@ get_test() ->
   ok.
 
 keys_test() ->
-  Keys = config:names(),
+  Keys = config:keys(),
   io:format("keys =~p~n", [Keys]),
   Expect = [env],
   ?assertEqual(Expect, Keys).
