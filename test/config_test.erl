@@ -11,43 +11,31 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
-setup() ->
-  Cnf = #{
-    atom_key => 32000,
-    "string_key" => 500000,
-    inner_map => #{
-      hello => ok
-    }
-  },
-  application:set_env(sigma, env, Cnf),
+load_test() ->
+  File = "/Users/ace/Documents/workspace/erlang/sigma/test/sample.config",
+  Loaded = config:load(File),
+  ?assertEqual(ok, Loaded),
   ok.
 
 get_test() ->
-  setup(),
-  io:format("all config :~p~n", [application:get_env(sigma, env)]),
-  Val = config:get([env, atom_key]),
-  io:format("Val :~p~n", [Val]),
-  ?assertEqual(Val, 32000),
-  Val2 = config:get([env, "string_key"]),
-  io:format("Val :~p~n", [Val2]),
-  ?assertEqual(Val2, 500000),
-  Val3 = config:get([env, inner_map, hello]),
-  io:format("Val :~p~n", [Val3]),
-  ?assertEqual(Val3, ok),
+  Simple = config:get(sample, simple_conf),
+  % simple data
+  ?assertEqual(100, Simple),
+  % map data
+  Map = config:get(sample, map_conf),
+  ?assertEqual(1, maps:get(id, Map)),
+  ?assertEqual("sigma_server", maps:get(name, Map)),
+  ?assertEqual([1, 2, 3], maps:get(cookie, Map)),
+  io:format("map data ~p~n", [Map]),
+  % list data
+  List = config:get(sample, list_conf),
+  ?assertEqual([1, "string", #{key => value}], List),
+  io:format("list data ~p~n", [List]),
   ok.
 
-keys_test() ->
-  Keys = config:keys(),
-  io:format("keys =~p~n", [Keys]),
-  Expect = [env],
-  ?assertEqual(Expect, Keys).
-
-load_test() ->
-  File = "/Users/ace/Documents/workspace/erlang/sigma/test/sample.config",
-  {ok, Result} = file:consult(File),
-  io:format("Content : ~p~n", [Result]),
-%%  Loaded = config:load(File),
-  ?assertEqual(Result, 1),
+get_with_default_test() ->
+  NoExist = config:get(non_exist_name, no_exist_key, "default"),
+  ?assertEqual(NoExist, "default"),
   ok.
 
 
