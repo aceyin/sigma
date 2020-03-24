@@ -1,12 +1,12 @@
 {application, network,
   [{description, "Network library"},
-    {vsn, "0.1.0"},
-    {registered, []},
-    {applications, [kernel, stdlib, sasl, config]},
-    {env, []},
-    {modules, []},
+   {vsn, "0.1.0"},
+   {registered, []},
+   {applications, [kernel, stdlib, sasl]},
+   {env, []},
+   {modules, []},
 
-    {maintainers, []},
-    {licenses, ["Apache 2.0"]},
-    {links, []}
+   {maintainers, []},
+   {licenses, ["Apache 2.0"]},
+   {links, []}
   ]}.
