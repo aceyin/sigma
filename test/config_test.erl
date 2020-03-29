@@ -18,19 +18,22 @@ load_test() ->
   ok.
 
 get_test() ->
-  Simple = config:get(sample, simple_conf),
+  Simple = config:get(sample_config, simple_conf),
   % simple data
   ?assertEqual(100, Simple),
   % map data
-  Map = config:get(sample, map_conf),
+  Map = config:get(sample_config, map_conf),
   ?assertEqual(1, maps:get(id, Map)),
   ?assertEqual("sigma_server", maps:get(name, Map)),
   ?assertEqual([1, 2, 3], maps:get(cookie, Map)),
-  io:format("map data ~p~n", [Map]),
+  ?debugFmt("map data ~p~n", [Map]),
   % list data
-  List = config:get(sample, list_conf),
+  List = config:get(sample_config, list_conf),
   ?assertEqual([1, "string", #{key => value}], List),
-  io:format("list data ~p~n", [List]),
+  ?debugFmt("list data ~p~n", [List]),
+  % all keys
+  AllKeys = config:all(sample_config),
+  ?debugFmt("AllKeys ~p~n", [AllKeys]),
   ok.
 
 get_with_default_test() ->

@@ -2,7 +2,7 @@
   [{description, "An Erlang game server framework"},
     {vsn, "0.1.0"},
     {registered, []},
-    {mod, {sigma_app, []}},
+    {mod, {sigma, []}},
     {applications, [kernel, stdlib, sasl]},
     {env, []},
     {modules, []},
