@@ -64,7 +64,7 @@ set_max_conn(N) -> gen_server:cast(?MODULE, {set_max_conn, N}).
   {ok, #state{}} | {ok, #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
 init(_Args) ->
-  io:format("network init/1 called"),
+  io:format("network init/1 called~n"),
   erlang:process_flag(trap_exit, true),
   erlang:process_flag(priority, high),
   Socket = start_listen(),
@@ -128,7 +128,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% @doc start TCP socket listen.
 start_listen() ->
-  io:format("network start_listen/0 called"),
+  io:format("network start_listen/0 called~n"),
   Port = ?DEFAULT_PORT, % TODO replace with the port from config
   case gen_tcp:listen(Port, ?TCP_OPTIONS) of
     {ok, Socket} -> Socket;

@@ -45,5 +45,7 @@ start() ->
 %% start the network listener according to the config
 %% @end
 start_network() ->
-  network_app:start([]),
-  ok.
+  case config:get(server_config, network) of
+    none -> error("No network config found in game_config");
+    Options -> network_app:start(Options)
+  end.

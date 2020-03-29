@@ -37,6 +37,9 @@
   % changing any real property of the socket.
   % The option is implementation-specific.
   delay_send = false :: boolean(),
+  %% If Boolean == true, option TCP_NODELAY is turned on for the socket,
+  %% which means that also small amounts of data are sent immediately.
+  nodelay = true :: boolean(),
   % This option is only meaningful if option binary was specified when the socket was created.
   % If option header is specified, the first Size number bytes of data received from the socket
   % are elements of a list, and the remaining data is a binary specified as the tail of the same list.
@@ -58,7 +61,10 @@
   % If the packet header indicates that the length of the packet is longer than the maximum allowed length,
   % the packet is considered invalid. The same occurs if the packet header is too large for
   % the socket receive buffer.
-  packet_size :: number()
+  packet_size :: number(),
+  exit_on_close = false :: boolean(),
+  send_timeout = 4000 :: non_neg_integer(),
+  reuseaddr = true :: boolean()
 }).
 
 %% Network config.
