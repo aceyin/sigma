@@ -10,9 +10,10 @@
 -author("ace").
 
 %% API
--export([server_start/0]).
+-export([start/0]).
 
 %%% start the game server.
-server_start() ->
-
+start() ->
+  io:format("sigma start/0 called"),
+  network_app:start([]),
   ok.

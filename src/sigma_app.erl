@@ -14,8 +14,10 @@
 %% API
 %%====================================================================
 
-start(_StartType, _StartArgs) ->
+start(Type, Args) ->
+  io:format("sigma_app start/2 called, args[1]:~p, args[2]:~p~n", [Type, Args]),
   {ok, Sup} = sigma_sup:start_link(),
+  network_app:start([]),
   {ok, Sup}.
 
 %%--------------------------------------------------------------------

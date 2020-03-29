@@ -6,13 +6,13 @@
 %%% @end
 %%% Created : 25. 3月 2020 11:37 下午
 %%%-------------------------------------------------------------------
--author("ace").
 -module(network).
+-author("ace").
 -behaviour(gen_server).
 -include("network.hrl").
 
 %% API
--export([start_link/0]).
+-export([start_link/0, stop/0, set_max_conn/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -30,6 +30,8 @@
   ref
 }).
 
+-define(DEFAULT_PORT, 8971).
+
 -define(TCP_OPTIONS, [
   binary,
   {active, false},
@@ -46,6 +48,7 @@
 
 -spec(start_link() -> {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
+  io:format("network start_link/0 called"),
   gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %% @doc stop network server.
@@ -60,7 +63,8 @@ set_max_conn(N) -> gen_server:cast(?MODULE, {set_max_conn, N}).
 -spec(init(Args :: term()) ->
   {ok, #state{}} | {ok, #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
-init(Args) ->
+init(_Args) ->
+  io:format("network init/1 called"),
   erlang:process_flag(trap_exit, true),
   erlang:process_flag(priority, high),
   Socket = start_listen(),
@@ -88,7 +92,9 @@ handle_call(_Request, _From, State) ->
   {noreply, NewState :: #state{}} |
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_cast(accept, State) -> accept(State);
+handle_cast(accept, State) ->
+  io:format("network handle_cast(accept, State) called, State:~p~n", [State]),
+  accept(State);
 handle_cast(_Request, State) ->
   io:format("Unknown cast requst: ~p~n", [_Request]),
   {noreply, State}.
@@ -122,7 +128,8 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% @doc start TCP socket listen.
 start_listen() ->
-  Port = 8971, % TODO replace with the port from config
+  io:format("network start_listen/0 called"),
+  Port = ?DEFAULT_PORT, % TODO replace with the port from config
   case gen_tcp:listen(Port, ?TCP_OPTIONS) of
     {ok, Socket} -> Socket;
     {error, Reason} ->
@@ -132,6 +139,7 @@ start_listen() ->
 
 %% @doc start to accept client connection.
 accept(State = #state{socket = Socket, clients = Count}) ->
+  io:format("network accept/1 called, State=~p~n", [State]),
   case prim_inet:async_accept(Socket, -1) of
     {ok, Ref} -> {noreply, State#state{clients = Count + 1, ref = Ref}};
     Error ->

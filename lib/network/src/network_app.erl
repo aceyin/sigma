@@ -20,6 +20,7 @@
 -spec(start(Type :: normal | {takeover, node()} | {failover, node()}, Args :: term()) ->
   {ok, pid()} | {ok, pid(), State :: term()} | {error, Reason :: term()}).
 start(_Type, _Args) ->
+  io:format("network_app:start/2 called"),
   {ok, Options} = application:get_env(network, network_options),
   case network_sup:start_link(Options) of
     {ok, Sup} -> {ok, Sup};
@@ -31,6 +32,7 @@ start(_Type, _Args) ->
 stop(_State) -> ok.
 
 start(Args) ->
+  io:format("Starting network_app with args: ~p~n...", [Args]),
   application:set_env(network, network_options, Args),
   application:start(network).
 
