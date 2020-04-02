@@ -22,7 +22,7 @@
 -spec(start(Type :: normal | {takeover, node()} | {failover, node()}, Args :: term()) ->
   {ok, pid()} | {ok, pid(), State :: term()} | {error, Reason :: term()}).
 start(_Type, _Args) ->
-  io:format("network_app:start/2 called~n"),
+  logger:debug("network_app:start/2 called~n"),
   {ok, Options} = application:get_env(network, network_options),
   case network_sup:start_link(Options) of
     {ok, Sup} -> {ok, Sup};
@@ -35,9 +35,9 @@ stop(_State) -> ok.
 
 -spec(start(map()) -> term()).
 start(Args) ->
-  io:format("network_app:start/1 called with args:~p~n", [Args]),
+  logger:debug("network_app:start/1 called with args:~p~n", [Args]),
   application:set_env(network, network_options, Args),
-  io:format("Calling application:start(network)~n"),
+  logger:debug("Calling application:start(network)~n"),
   application:start(network),
   gen_server:start_link({local, network}, network, Args, []),
   ok.

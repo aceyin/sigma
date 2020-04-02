@@ -24,7 +24,7 @@
 %% Application callbacks.
 %%--------------------------------------------------------------------
 start(Type, Args) ->
-  io:format("s, args[1]:~p, args[2]:~p~n", [Type, Args]),
+  logger:debug("sigma start/2 called, args[1]:~p, args[2]:~p~n", [Type, Args]),
   {ok, Sup} = sigma_sup:start_link(),
   {ok, Sup}.
 
@@ -38,21 +38,26 @@ init_logger() ->
   #{level := Level, format := Format, file := File} = LogConfig,
   logger:set_handler_config(default, level, Level),
   logger:set_handler_config(default, file, File),
-  logger:update_formatter_config(default, #{single_line => true, template => Format}),
-  io:format("Log config: ~p~n", [LogConfig]),
+  logger:update_formatter_config(default, #{
+    time_offset=>"Z",
+    time_designator=>$\s,
+    single_line => true,
+    template => Format
+  }),
+  logger:info("Use logger config: ~p", [LogConfig]),
   ok.
 
 %% @doc
 %% start the server.
 %% @end
 start() ->
-  io:format("Starting sigma at ~p ...~n", [calendar:local_time()]),
+  logger:info("Starting sigma at ~p ...", [calendar:local_time()]),
   try
     config:load(?CONF_FILE),
     init_logger(),
     application:start(?MODULE),
     start_network(),
-    io:format("App sigma started at ~p~n", [calendar:local_time()]),
+    logger:info("App sigma started at ~p", [calendar:local_time()]),
     ok
   catch
     _Err:Reason -> exit(Reason)

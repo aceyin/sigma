@@ -48,7 +48,7 @@
 
 -spec(start_link() -> {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
-  io:format("network start_link/0 called"),
+  logger:debug("network start_link/0 called"),
   gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %% @doc stop network server.

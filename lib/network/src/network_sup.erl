@@ -22,14 +22,14 @@
 -spec(start_link() -> {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() -> start_link([]).
 start_link(Args) ->
-  io:format("network_sup:start_link/1 called"),
+  logger:debug("network_sup:start_link/1 called"),
   supervisor:start_link({local, ?MODULE}, ?MODULE, Args).
 
 %% @doc supervisor callback.
 -spec(init(Args :: term()) ->
   {ok, {{strategy(), nni(), nni()}, [child_spec()]}} | ignore | {error, Reason :: term()}).
 init(Args) ->
-  io:format("network_sup:init/1 called"),
+  logger:debug("network_sup:init/1 called"),
   % Defines the function call used to start the child process.
   % It must be a module-function-arguments tuple {M,F,A} used as apply(M,F,A).
   Start = {network, start_link, [Args]},
