@@ -31,30 +31,13 @@ start(Type, Args) ->
 stop(_State) -> ok.
 
 %% @doc
-%% 根据配置文件中的日志配置来初始化日志系统
-%% @end
-init_logger() ->
-  LogConfig = config:get(server_config, logger, ?DEFAULT_LOGGER),
-  #{level := Level, format := Format, file := File} = LogConfig,
-  logger:set_handler_config(default, level, Level),
-  logger:set_handler_config(default, file, File),
-  logger:update_formatter_config(default, #{
-    time_offset=>"Z",
-    time_designator=>$\s,
-    single_line => true,
-    template => Format
-  }),
-  ?INFO("Use logger config: ~p", [LogConfig]),
-  ok.
-
-%% @doc
 %% start the server.
 %% @end
 start() ->
   ?INFO("Starting sigma at ~p ...", [calendar:local_time()]),
   try
     config:load(?CONF_FILE),
-    init_logger(),
+    initializer:init_logger(),
     application:start(?MODULE),
     start_network(),
     ?INFO("App sigma started at ~p", [calendar:local_time()]),

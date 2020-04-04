@@ -44,9 +44,8 @@
 -define(DO_LOG(Level, Args),
   case logger:allow(Level, ?MODULE) of
     true ->
-      apply(logger, macro_log, [?LOCATION, Level | Args]);
+       apply(logger, macro_log, [?LOCATION, Level | Args]);
     false ->
       ok
   end).
-
 -endif.
