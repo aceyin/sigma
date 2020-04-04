@@ -13,47 +13,22 @@
 
 %% API
 -export([start_link/0, stop/0, set_max_conn/1]).
-
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
-
--record(state, {
-  % the server socket
-  socket = 0 :: port(),
-  % current used socket options.
-  options :: #socket_option{},
-  % client count
-  count = 0 :: non_neg_integer(),
-  % max connection
-  max,
-  % current client socket ref
-  ref
-}).
-
--define(DEFAULT_PORT, 8971).
-
--define(TCP_OPTIONS, [
-  binary,
-  {active, false},
-  {reuseaddr, true},
-  {delay_send, true},
-  {nodelay, true},
-  {send_timeout, 8000},
-  {exit_on_close, false}
-]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-
--spec(start_link() -> {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
-  ?DEBUG("network start_link/0 called"),
+  ?INFO("Starting network server"),
   gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
-%% @doc stop network server.
-stop() -> gen_server:cast(?MODULE, stop).
+%% @doc stop network server. @end
+stop() ->
+  ?INFO("Stopping network server"),
+  gen_server:cast(?MODULE, stop).
 
+%% @doc set the max allowed connections programmatically. @end
 set_max_conn(N) -> gen_server:cast(?MODULE, {set_max_conn, N}).
 
 %%%===================================================================
@@ -61,7 +36,7 @@ set_max_conn(N) -> gen_server:cast(?MODULE, {set_max_conn, N}).
 %%%===================================================================
 
 -spec(init(Args :: term()) ->
-  {ok, #state{}} | {ok, #state{}, timeout() | hibernate} |
+  {ok, #net_state{}} | {ok, #net_state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
 init(_Args) ->
   ?DEBUG("network init/1 called~n"),
@@ -70,28 +45,25 @@ init(_Args) ->
   Socket = start_listen(),
   Max = 1000, %% TODO get from config file
   gen_server:cast(self(), accept),
-  {ok, #state{socket = Socket, max = Max}}.
+  {ok, #net_state{socket = Socket, max = Max}}.
 
--spec(handle_call(Request :: term(), From :: {pid(), Tag :: term()},
-                  State :: #state{}) ->
-                   {reply, Reply :: term(), NewState :: #state{}} |
-                   {reply, Reply :: term(), NewState :: #state{}, timeout() | hibernate} |
-                   {noreply, NewState :: #state{}} |
-                   {noreply, NewState :: #state{}, timeout() | hibernate} |
-                   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
-                   {stop, Reason :: term(), NewState :: #state{}}).
+%% @doc do set max allowed connections of the network server. @end
 handle_call({set_max_conn, N}, _From, State) ->
-  NewState = State#state{max = N},
+  NewState = State#net_state{max = N},
   {reply, ok, NewState};
-handle_call(_Request, _From, State) ->
-  ?WARNING("network app received unknown call request ~p", [_Request]),
+handle_call(Request, From, State) ->
+  ?WARNING("network server received unknown call request from ~p: ~p", [From, Request]),
   {noreply, State}.
 
-%% @doc start to accept network connection.
--spec(handle_cast(Request :: term(), State :: #state{}) ->
-  {noreply, NewState :: #state{}} |
-  {noreply, NewState :: #state{}, timeout() | hibernate} |
-  {stop, Reason :: term(), NewState :: #state{}}).
+-spec(handle_cast(Request :: term(), State :: #net_state{}) ->
+  {noreply, NewState :: #net_state{}} |
+  {noreply, NewState :: #net_state{}, timeout() | hibernate} |
+  {stop, Reason :: term(), NewState :: #net_state{}}).
+%% @doc
+%% 开始接受下一次网络请求.
+%% 因为网络服务器的模式设置为{active, false}, 因此每次在处理完新进来的网络连接之后,
+%% 必须再手工调用一次本函数, 来让网络服务器能继续接收下一次请求.
+%% @end
 handle_cast(accept, State) ->
   accept(State);
 handle_cast(_Request, State) ->
@@ -113,15 +85,15 @@ handle_info({inet_async, LSock, Ref, {error, closed}}, State) ->
 handle_info({inet_async, LSock, Ref, Error}, State) ->
   ?ERROR("Accept error, LSock:~p, Ref:~p, Error:~p", [LSock, Ref, Error]),
   accept(State);
-handle_info({'DOWN', _Ref, process, Pid, Info}, State = #state{count = Count}) ->
+handle_info({'DOWN', _Ref, process, Pid, Info}, State = #net_state{count = Count}) ->
   ?INFO("Client process ~p closed connection, reason:~p", [Pid, Info]),
-  {noreply, State#state{count = Count - 1}};
+  {noreply, State#net_state{count = Count - 1}};
 handle_info(_Info, State) ->
   {noreply, State}.
 
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
-                State :: #state{}) -> term()).
-terminate(_Reason, #state{socket = Socket}) ->
+                State :: #net_state{}) -> term()).
+terminate(_Reason, #net_state{socket = Socket}) ->
   ?INFO("network app receive terminate for reason ~p", [_Reason]),
   case erlang:is_port(Socket) of
     true -> close_socket(Socket);
@@ -129,9 +101,6 @@ terminate(_Reason, #state{socket = Socket}) ->
   end,
   ok.
 
--spec(code_change(OldVsn :: term() | {down, term()}, State :: #state{},
-                  Extra :: term()) ->
-                   {ok, NewState :: #state{}} | {error, Reason :: term()}).
 code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 
@@ -153,10 +122,10 @@ start_listen() ->
   end.
 
 %% @doc start to accept client connection.
-accept(State = #state{socket = Socket, count = Count}) ->
+accept(State = #net_state{socket = Socket, count = Count}) ->
   ?INFO("network app ready for accepting connections"),
   case prim_inet:async_accept(Socket, -1) of
-    {ok, Ref} -> {noreply, State#state{count = Count + 1, ref = Ref}};
+    {ok, Ref} -> {noreply, State#net_state{count = Count + 1, ref = Ref}};
     Error ->
       ?ERROR("Error while accept client connection, reason:~p~n", [Error]),
       {stop, {cannot_accept, Error}, State}

@@ -11,26 +11,17 @@
 -define(NETWORK_HRL, true).
 
 -include("logger.hrl").
+%% @doc
 %% Socket options.
 %% @see inet:setopts/2
--record(socket_option, {
-  % mode: binary | list |
-  mode = binary :: atom(),
+%% @end
+-define(TCP_OPTIONS, [
+  binary,
   % If the value is true, which is the default, everything received from the socket is
   % sent as messages to the receiving process.
   % If the value is false (passive mode), the process must explicitly receive incoming data
   % by calling gen_tcp:recv/2,3, gen_udp:recv/2,3, or gen_sctp:recv/1,2 (depending on the type of socket).
-  active = true :: boolean(),
-  % The size of the user-level buffer used by the driver.
-  % Not to be confused with options sndbuf and recbuf, which correspond to the Kernel socket buffers.
-  % For TCP it is recommended to have val(buffer) >= val(recbuf) to avoid performance issues
-  % because of unnecessary copying.
-  % Note that this is also the maximum amount of data that can be received from a single recv call.
-  % If you are using higher than normal MTU consider setting buffer higher.
-  buffer :: number(),
-  % The minimum size of the send buffer to use for the socket.
-  % You are encouraged to use getopts/2, to retrieve the size set by your operating system.
-  sndbuf :: number(),
+  {active, false},
   % Normally, when an Erlang process sends to a socket, the driver tries to send the data immediately.
   % If that fails, the driver uses any means available to queue up the message to be sent
   % whenever the operating system says it can handle it.
@@ -39,41 +30,38 @@
   % The option affects the scheduling of send requests versus Erlang processes instead of
   % changing any real property of the socket.
   % The option is implementation-specific.
-  delay_send = false :: boolean(),
-  %% If Boolean == true, option TCP_NODELAY is turned on for the socket,
-  %% which means that also small amounts of data are sent immediately.
-  nodelay = true :: boolean(),
-  % This option is only meaningful if option binary was specified when the socket was created.
-  % If option header is specified, the first Size number bytes of data received from the socket
-  % are elements of a list, and the remaining data is a binary specified as the tail of the same list.
-  % For example, if Size == 2, the data received matches [Byte1,Byte2|Binary].
-  header = 4 :: number(),
-  keepalive = true :: boolean(),
-  % Defines the type of packets to use for a socket. Possible values:
-  % * raw | 0   : No packaging is done.
-  % * 1 | 2 | 4 : Packets consist of a header specifying the number of bytes in the packet,
-  %               followed by that number of bytes. The header length can be one, two, or four bytes,
-  %               and containing an unsigned integer in big-endian byte order.
-  %               Each send operation generates the header, and the header is stripped off on
-  %               each receive operation.
-  %               The 4-byte header is limited to 2Gb.
-  % * others    : Which will not be used in a game server. Possible values are:
-  %               asn1 | cdr | sunrm | fcgi | tpkt | line | http | http_bin | httph | httph_bin
-  packet = 4 :: number(),
-  % Sets the maximum allowed length of the packet body.
-  % If the packet header indicates that the length of the packet is longer than the maximum allowed length,
-  % the packet is considered invalid. The same occurs if the packet header is too large for
-  % the socket receive buffer.
-  packet_size :: number(),
-  exit_on_close = false :: boolean(),
-  send_timeout = 4000 :: non_neg_integer(),
-  reuseaddr = true :: boolean()
+  {delay_send, true},
+  % If Boolean == true, option TCP_NODELAY is turned on for the socket,
+  % which means that also small amounts of data are sent immediately.
+  {nodelay, true},
+  % Enables/disables periodic transmission on a connected socket when no other data is exchanged.
+  % If the other end does not respond, the connection is considered broken and an error message
+  % is sent to the controlling process.
+  {keepalive, true},
+  % This option is set to true by default.
+  % The only reason to set it to false is
+  % if you want to continue sending data to the socket after a close is detected
+  {exit_on_close, false},
+  {send_timeout, 4000},
+  % Allows or disallows local reuse of port numbers.
+  % By default, reuse is disallowed.
+  {reuseaddr, true}
+]).
+
+%% @doc
+%% 网络进程的状态记录
+%% @end
+-record(net_state, {
+  % the server socket
+  socket = 0 :: port(),
+  % current used socket options.
+  options :: list(),
+  % client count
+  count = 0 :: non_neg_integer(),
+  % max allowed connections
+  max = 1000 :: non_neg_integer(),
+  % current client socket ref
+  ref
 }).
 
-%% Network config.
--record(network, {
-  ip = {0, 0, 0, 0} :: tuple(),
-  port :: non_neg_integer(),
-  options :: #socket_option{}
-}).
 -endif.
