@@ -23,7 +23,7 @@
   % current used socket options.
   options :: #socket_option{},
   % client count
-  clients = 0 :: non_neg_integer(),
+  count = 0 :: non_neg_integer(),
   % max connection
   max,
   % current client socket ref
@@ -98,10 +98,24 @@ handle_cast(_Request, State) ->
   ?WARNING("network app received unknown cast requst: ~p", [_Request]),
   {noreply, State}.
 
--spec(handle_info(Info :: timeout() | term(), State :: #state{}) ->
-  {noreply, NewState :: #state{}} |
-  {noreply, NewState :: #state{}, timeout() | hibernate} |
-  {stop, Reason :: term(), NewState :: #state{}}).
+%% @doc
+%% OTP 异步网络模块(prim_inet:async_accept)在收到客户端连接之后, 会通过消息将链接发送到监听者进程.
+%% 这一系列 handle_info({inet_xxx) 相关的函数就是用来接收网卡模块发送的连接信息的.
+%% @end
+handle_info({inet_async, LSock, _Ref, {ok, Sock}}, _State) ->
+  true = inet_db:register_socket(Sock, inet_tcp),
+  ?DEBUG("Incoming client LSock:~p, Sock:~p", [LSock, Sock]),
+  %% TODO 启动一个新的玩家进程, 并将tcp控制权交给此进程
+  accept(_State);
+handle_info({inet_async, LSock, Ref, {error, closed}}, State) ->
+  ?INFO("Socket closed, LSock:~p, Ref:~p", [LSock, Ref]),
+  {stop, normal, State};
+handle_info({inet_async, LSock, Ref, Error}, State) ->
+  ?ERROR("Accept error, LSock:~p, Ref:~p, Error:~p", [LSock, Ref, Error]),
+  accept(State);
+handle_info({'DOWN', _Ref, process, Pid, Info}, State = #state{count = Count}) ->
+  ?INFO("Client process ~p closed connection, reason:~p", [Pid, Info]),
+  {noreply, State#state{count = Count - 1}};
 handle_info(_Info, State) ->
   {noreply, State}.
 
@@ -139,10 +153,10 @@ start_listen() ->
   end.
 
 %% @doc start to accept client connection.
-accept(State = #state{socket = Socket, clients = Count}) ->
+accept(State = #state{socket = Socket, count = Count}) ->
   ?INFO("network app ready for accepting connections"),
   case prim_inet:async_accept(Socket, -1) of
-    {ok, Ref} -> {noreply, State#state{clients = Count + 1, ref = Ref}};
+    {ok, Ref} -> {noreply, State#state{count = Count + 1, ref = Ref}};
     Error ->
       ?ERROR("Error while accept client connection, reason:~p~n", [Error]),
       {stop, {cannot_accept, Error}, State}

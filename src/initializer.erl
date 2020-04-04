@@ -13,7 +13,6 @@
 %% API
 -export([init_logger/0]).
 
-
 %% @doc
 %% 用 server.config 里面配置的参数初始化日志系统.
 %% @end
