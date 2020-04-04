@@ -10,7 +10,7 @@
 -behaviour(application).
 -author("ace").
 
--include("log.hrl").
+-include("logger.hrl").
 
 %% Application callbacks
 -export([start/2, stop/1]).
@@ -24,7 +24,7 @@
 %% Application callbacks.
 %%--------------------------------------------------------------------
 start(Type, Args) ->
-  logger:debug("sigma start/2 called, args[1]:~p, args[2]:~p~n", [Type, Args]),
+  ?DEBUG("sigma start/2 called, args[1]:~p, args[2]:~p~n", [Type, Args]),
   {ok, Sup} = sigma_sup:start_link(),
   {ok, Sup}.
 
@@ -44,20 +44,20 @@ init_logger() ->
     single_line => true,
     template => Format
   }),
-  logger:info("Use logger config: ~p", [LogConfig]),
+  ?INFO("Use logger config: ~p", [LogConfig]),
   ok.
 
 %% @doc
 %% start the server.
 %% @end
 start() ->
-  logger:info("Starting sigma at ~p ...", [calendar:local_time()]),
+  ?INFO("Starting sigma at ~p ...", [calendar:local_time()]),
   try
     config:load(?CONF_FILE),
     init_logger(),
     application:start(?MODULE),
     start_network(),
-    logger:info("App sigma started at ~p", [calendar:local_time()]),
+    ?INFO("App sigma started at ~p", [calendar:local_time()]),
     ok
   catch
     _Err:Reason -> exit(Reason)

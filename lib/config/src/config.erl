@@ -1,8 +1,8 @@
 -module(config).
+-include("logger.hrl").
 
 %% API exports
 -export([get/3, get/2, all/1, load/1]).
-
 %%====================================================================
 %% API functions
 %%====================================================================
@@ -52,8 +52,8 @@ load(FilePath) ->
           Bin = compiler:compile(Mod, TermList),
           code:purge(Mod),
           {module, Mod} = code:load_binary(Mod, atom_to_list(Mod) ++ ".erl", Bin),
-          logger:info("Compile config file ~p into module ~p success~n", [FilePath, Mod]),
-          logger:info("All config items in module ~p are: ~p~n ", [Mod, config:all(Mod)]),
+          ?INFO("Compile config file ~p into module ~p success~n", [FilePath, Mod]),
+          ?INFO("All config items in module ~p are: ~p~n ", [Mod, config:all(Mod)]),
           ok;
         Error ->
           error(io:format("Error while parse config file ~p, reason: ~p", [BaseName, Error]))

@@ -34,7 +34,8 @@
 -define(LOCATION, #{
   mfa=>{?MODULE, ?FUNCTION_NAME, ?FUNCTION_ARITY},
   line=>?LINE,
-  file=>?FILE
+  file=>?FILE,
+  filename=>filename:basename(?FILE)
 }).
 
 %%%-----------------------------------------------------------------
