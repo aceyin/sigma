@@ -7,7 +7,10 @@
 %%% Created : 22. 3月 2020 11:32 下午
 %%%-------------------------------------------------------------------
 -author("ace").
+-ifndef(NETWORK_HRL).
+-define(NETWORK_HRL, true).
 
+-include("logger.hrl").
 %% Socket options.
 %% @see inet:setopts/2
 -record(socket_option, {
@@ -73,3 +76,4 @@
   port :: non_neg_integer(),
   options :: #socket_option{}
 }).
+-endif.

@@ -48,7 +48,7 @@
 
 -spec(start_link() -> {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
-  logger:debug("network start_link/0 called"),
+  ?DEBUG("network start_link/0 called"),
   gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %% @doc stop network server.
@@ -64,7 +64,7 @@ set_max_conn(N) -> gen_server:cast(?MODULE, {set_max_conn, N}).
   {ok, #state{}} | {ok, #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
 init(_Args) ->
-  logger:debug("network init/1 called~n"),
+  ?DEBUG("network init/1 called~n"),
   erlang:process_flag(trap_exit, true),
   erlang:process_flag(priority, high),
   Socket = start_listen(),
@@ -84,7 +84,7 @@ handle_call({set_max_conn, N}, _From, State) ->
   NewState = State#state{max = N},
   {reply, ok, NewState};
 handle_call(_Request, _From, State) ->
-  logger:warning("network app received unknown call request ~p", [_Request]),
+  ?WARNING("network app received unknown call request ~p", [_Request]),
   {noreply, State}.
 
 %% @doc start to accept network connection.
@@ -95,7 +95,7 @@ handle_call(_Request, _From, State) ->
 handle_cast(accept, State) ->
   accept(State);
 handle_cast(_Request, State) ->
-  logger:warning("network app received unknown cast requst: ~p", [_Request]),
+  ?WARNING("network app received unknown cast requst: ~p", [_Request]),
   {noreply, State}.
 
 -spec(handle_info(Info :: timeout() | term(), State :: #state{}) ->
@@ -108,7 +108,7 @@ handle_info(_Info, State) ->
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
                 State :: #state{}) -> term()).
 terminate(_Reason, #state{socket = Socket}) ->
-  logger:info("network app receive terminate for reason ~p", [_Reason]),
+  ?INFO("network app receive terminate for reason ~p", [_Reason]),
   case erlang:is_port(Socket) of
     true -> close_socket(Socket);
     false -> ok
@@ -127,24 +127,24 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% @doc start TCP socket listen.
 start_listen() ->
-  logger:debug("network start_listen/0 called~n"),
+  ?DEBUG("network start_listen/0 called~n"),
   Port = ?DEFAULT_PORT, % TODO replace with the port from config
   case gen_tcp:listen(Port, ?TCP_OPTIONS) of
     {ok, Socket} ->
-      logger:info("Network app started at port ~p", [Port]),
+      ?INFO("Network app started at port ~p", [Port]),
       Socket;
     {error, Reason} ->
-      logger:error("Error while open socket on port ~p, reason:~p", [Port, Reason]),
+      ?ERROR("Error while open socket on port ~p, reason:~p", [Port, Reason]),
       exit(Reason)
   end.
 
 %% @doc start to accept client connection.
 accept(State = #state{socket = Socket, clients = Count}) ->
-  logger:info("network app ready for accepting connections"),
+  ?INFO("network app ready for accepting connections"),
   case prim_inet:async_accept(Socket, -1) of
     {ok, Ref} -> {noreply, State#state{clients = Count + 1, ref = Ref}};
     Error ->
-      logger:error("Error while accept client connection, reason:~p~n", [Error]),
+      ?ERROR("Error while accept client connection, reason:~p~n", [Error]),
       {stop, {cannot_accept, Error}, State}
   end.
 
