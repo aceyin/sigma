@@ -53,15 +53,15 @@
 %% @end
 -record(net_state, {
   % the server socket
-  socket = 0 :: port(),
+  server_socket = 0 :: port(),
   % current used socket options.
-  options :: list(),
+  options = ?TCP_OPTIONS :: list(),
   % client count
   count = 0 :: non_neg_integer(),
   % max allowed connections
   max = 1000 :: non_neg_integer(),
-  % current client socket ref
-  ref
+  % current network acceptor process reference
+  acceptor :: reference()
 }).
 
 -endif.

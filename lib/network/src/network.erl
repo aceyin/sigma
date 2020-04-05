@@ -42,10 +42,10 @@ init(_Args) ->
   ?DEBUG("network init/1 called~n"),
   erlang:process_flag(trap_exit, true),
   erlang:process_flag(priority, high),
-  Socket = start_listen(),
+  ServerSocket = start_listen(),
   Max = 1000, %% TODO get from config file
   gen_server:cast(self(), accept),
-  {ok, #net_state{socket = Socket, max = Max}}.
+  {ok, #net_state{server_socket = ServerSocket, max = Max}}.
 
 %% @doc do set max allowed connections of the network server. @end
 handle_call({set_max_conn, N}, _From, State) ->
@@ -74,11 +74,12 @@ handle_cast(_Request, State) ->
 %% OTP 异步网络模块(prim_inet:async_accept)在收到客户端连接之后, 会通过消息将链接发送到监听者进程.
 %% 这一系列 handle_info({inet_xxx) 相关的函数就是用来接收网卡模块发送的连接信息的.
 %% @end
-handle_info({inet_async, LSock, _Ref, {ok, Sock}}, _State) ->
-  true = inet_db:register_socket(Sock, inet_tcp),
-  ?DEBUG("Incoming client LSock:~p, Sock:~p", [LSock, Sock]),
+handle_info({inet_async, ServerSock, Ref, {ok, ClientSocket}},
+            State = #net_state{server_socket = ServerSock, acceptor = Ref, count = Count}) ->
+  true = inet_db:register_socket(ClientSocket, inet_tcp),
+  ?DEBUG("Incoming client ServerSock:~p, Ref:~p, Sock:~p, State:~p", [ServerSock, Ref, ClientSocket, State]),
   %% TODO 启动一个新的玩家进程, 并将tcp控制权交给此进程
-  accept(_State);
+  accept(State#net_state{count = Count + 1});
 handle_info({inet_async, LSock, Ref, {error, closed}}, State) ->
   ?INFO("Socket closed, LSock:~p, Ref:~p", [LSock, Ref]),
   {stop, normal, State};
@@ -93,7 +94,7 @@ handle_info(_Info, State) ->
 
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
                 State :: #net_state{}) -> term()).
-terminate(_Reason, #net_state{socket = Socket}) ->
+terminate(_Reason, #net_state{server_socket = Socket}) ->
   ?INFO("network app receive terminate for reason ~p", [_Reason]),
   case erlang:is_port(Socket) of
     true -> close_socket(Socket);
@@ -111,7 +112,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc start TCP socket listen.
 start_listen() ->
   ?DEBUG("network start_listen/0 called~n"),
-  Port = ?DEFAULT_PORT, % TODO replace with the port from config
+  Port = 8971, % TODO replace with the port from config
   case gen_tcp:listen(Port, ?TCP_OPTIONS) of
     {ok, Socket} ->
       ?INFO("Network app started at port ~p", [Port]),
@@ -121,11 +122,13 @@ start_listen() ->
       exit(Reason)
   end.
 
-%% @doc start to accept client connection.
-accept(State = #net_state{socket = Socket, count = Count}) ->
+%% @doc start to accept client connection. @end
+accept(State = #net_state{server_socket = ServerSocket}) ->
   ?INFO("network app ready for accepting connections"),
-  case prim_inet:async_accept(Socket, -1) of
-    {ok, Ref} -> {noreply, State#net_state{count = Count + 1, ref = Ref}};
+  case prim_inet:async_accept(ServerSocket, -1) of
+    {ok, Ref} ->
+      ?DEBUG("Accept on server socket ~p, Ref:~p", [ServerSocket, Ref]),
+      {noreply, State#net_state{acceptor = Ref}};
     Error ->
       ?ERROR("Error while accept client connection, reason:~p~n", [Error]),
       {stop, {cannot_accept, Error}, State}
