@@ -10,15 +10,19 @@
 -author("ace").
 
 %% API
--export([]).
+-export([do_dispatch/2, async_recv/3]).
 
+%% @doc 开始为新建立的 Socket 分派网络处理模块 @end
+-spec(do_dispatch(Socket :: port(), Acceptor :: module()) -> atom()).
+do_dispatch(_Socket, _Acceptor) ->
+  ok.
 
 %% 接受信息
 async_recv(Sock, Length, Timeout) when is_port(Sock) ->
   case prim_inet:async_recv(Sock, Length, Timeout) of
-    {error, Reason} -> 	throw({Reason});
-    {ok, Res}       ->  Res;
-    Res             ->	Res
+    {error, Reason} -> throw({Reason});
+    {ok, Res} -> Res;
+    Res -> Res
   end;
-async_recv(_Sock,_Len,_Timeout)->
+async_recv(_Sock, _Len, _Timeout) ->
   {error, "param[1] is not a port"}.

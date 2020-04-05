@@ -15,7 +15,7 @@
 %% Socket options.
 %% @see inet:setopts/2
 %% @end
--define(TCP_OPTIONS, [
+-define(DEFAULT_OPTIONS, [
   binary,
   % If the value is true, which is the default, everything received from the socket is
   % sent as messages to the receiving process.
@@ -49,19 +49,34 @@
 ]).
 
 %% @doc
+%% 网络配置参数
+%% @end
+-record(net_config, {
+  %% 监听地址 {Ip::string(), Port::number()}
+  addr :: tuple(),
+  %% TCP 选项
+  options = ?DEFAULT_OPTIONS :: list(),
+  %% 处理网络数据的接收器模块名称 #{sup=>module(), mod=>module()}
+  receiver :: map()
+}).
+
+%% @doc
 %% 网络进程的状态记录
 %% @end
 -record(net_state, {
+  % current config
+  config :: #net_config{},
   % the server socket
   server_socket = 0 :: port(),
   % current used socket options.
-  options = ?TCP_OPTIONS :: list(),
+  options = ?DEFAULT_OPTIONS :: list(),
   % client count
   count = 0 :: non_neg_integer(),
   % max allowed connections
   max = 1000 :: non_neg_integer(),
-  % current network acceptor process reference
-  acceptor :: reference()
+  % prim_inet:async_accept 返回的一个引用参数
+  % 可用在新的网络连接建立时(handle_info回调函数)做模式匹配用
+  ref :: reference()
 }).
 
 -endif.

@@ -8,7 +8,7 @@
 %%%-------------------------------------------------------------------
 -module(network_app).
 -author("ace").
--include("logger.hrl").
+-include("network.hrl").
 -behaviour(application).
 
 %% Application callbacks
@@ -23,8 +23,8 @@
   {ok, pid()} | {ok, pid(), State :: term()} | {error, Reason :: term()}).
 start(_Type, _Args) ->
   ?DEBUG("network_app:start/2 called~n"),
-  {ok, Options} = application:get_env(network, network_options),
-  case network_sup:start_link(Options) of
+  {ok, Config} = application:get_env(network, network_config),
+  case network_sup:start_link(Config) of
     {ok, Sup} -> {ok, Sup};
     Error -> Error
   end.
@@ -33,13 +33,13 @@ start(_Type, _Args) ->
 -spec(stop(State :: term()) -> term()).
 stop(_State) -> ok.
 
--spec(start(map()) -> term()).
-start(Args) ->
-  ?DEBUG("network_app:start/1 called with args:~p", [Args]),
-  application:set_env(network, network_options, Args),
-  ?DEBUG("Calling application:start(network)"),
+-spec(start(Config :: #net_config{}) -> term()).
+start(Config) ->
+  ?DEBUG("network_app:start/1 called with args:~p", [Config]),
+  application:set_env(network, network_config, Config),
   application:start(network),
-  gen_server:start_link({local, network}, network, Args, []),
+  % start the network gen_server
+  gen_server:start_link({local, network}, network, Config, []),
   ok.
 
 stop() -> application:stop(network).

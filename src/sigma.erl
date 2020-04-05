@@ -10,7 +10,7 @@
 -behaviour(application).
 -author("ace").
 
--include("logger.hrl").
+-include_lib("network/include/network.hrl").
 
 %% Application callbacks
 -export([start/2, stop/1]).
@@ -51,6 +51,12 @@ start() ->
 %% @end
 start_network() ->
   case config:get(server_config, network) of
-    none -> error("No network config found in game_config");
-    Options -> network_app:start(Options)
+    none -> error("No network config found in server_config");
+    #{options:=Options, receiver := Receiver} ->
+      case config:get(server_config, server) of
+        none -> error("No server config found in server_config");
+        #{listen :=Addr} ->
+          NetConf = #net_config{addr = Addr, receiver = Receiver, options = Options},
+          network_app:start(NetConf)
+      end
   end.

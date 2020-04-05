@@ -35,14 +35,14 @@ set_max_conn(N) -> gen_server:cast(?MODULE, {set_max_conn, N}).
 %%% gen_server callbacks
 %%%===================================================================
 
--spec(init(Args :: term()) ->
+-spec(init(Config :: #net_config{}) ->
   {ok, #net_state{}} | {ok, #net_state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
-init(_Args) ->
+init(Config) ->
   ?DEBUG("network init/1 called~n"),
   erlang:process_flag(trap_exit, true),
   erlang:process_flag(priority, high),
-  ServerSocket = start_listen(),
+  ServerSocket = start_listen(Config),
   Max = 1000, %% TODO get from config file
   gen_server:cast(self(), accept),
   {ok, #net_state{server_socket = ServerSocket, max = Max}}.
@@ -75,7 +75,7 @@ handle_cast(_Request, State) ->
 %% 这一系列 handle_info({inet_xxx) 相关的函数就是用来接收网卡模块发送的连接信息的.
 %% @end
 handle_info({inet_async, ServerSock, Ref, {ok, ClientSocket}},
-            State = #net_state{server_socket = ServerSock, acceptor = Ref, count = Count}) ->
+            State = #net_state{server_socket = ServerSock, ref = Ref, count = Count}) ->
   true = inet_db:register_socket(ClientSocket, inet_tcp),
   ?DEBUG("Incoming client ServerSock:~p, Ref:~p, Sock:~p, State:~p", [ServerSock, Ref, ClientSocket, State]),
   %% TODO 启动一个新的玩家进程, 并将tcp控制权交给此进程
@@ -109,11 +109,12 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-%% @doc start TCP socket listen.
-start_listen() ->
+-spec(start_listen(Config :: #net_config{}) -> port()).
+%% @doc start TCP socket listen. @end
+start_listen(Config) ->
   ?DEBUG("network start_listen/0 called~n"),
-  Port = 8971, % TODO replace with the port from config
-  case gen_tcp:listen(Port, ?TCP_OPTIONS) of
+  #net_config{addr = {_, Port}, options = Options} = Config,
+  case gen_tcp:listen(Port, Options) of
     {ok, Socket} ->
       ?INFO("Network app started at port ~p", [Port]),
       Socket;
@@ -128,7 +129,7 @@ accept(State = #net_state{server_socket = ServerSocket}) ->
   case prim_inet:async_accept(ServerSocket, -1) of
     {ok, Ref} ->
       ?DEBUG("Accept on server socket ~p, Ref:~p", [ServerSocket, Ref]),
-      {noreply, State#net_state{acceptor = Ref}};
+      {noreply, State#net_state{ref = Ref}};
     Error ->
       ?ERROR("Error while accept client connection, reason:~p~n", [Error]),
       {stop, {cannot_accept, Error}, State}
