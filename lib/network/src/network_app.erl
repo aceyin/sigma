@@ -35,7 +35,7 @@ stop(_State) -> ok.
 
 -spec(start(Config :: #net_config{}) -> term()).
 start(Config) ->
-  ?DEBUG("network_app:start/1 called with args:~p", [Config]),
+  ?DEBUG("network_app:start(~p)", [Config]),
   application:set_env(network, net_config, Config),
   application:start(network),
   % start the network gen_server

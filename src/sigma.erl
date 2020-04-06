@@ -54,6 +54,7 @@ start_network() ->
   case config:get(server_config, network) of
     none -> error("No network config found in server_config");
     Map ->
+      ?DEBUG("Starting network app with config: ~p", [Map]),
       #{options := Options, port := Port, max_conn := Max, receiver := Receiver} = Map,
       network_app:start(#net_config{
         options = Options, port = Port, max_conn = Max, receiver = Receiver

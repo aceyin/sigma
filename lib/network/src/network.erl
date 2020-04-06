@@ -39,7 +39,7 @@ set_max_conn(N) -> gen_server:cast(?MODULE, {set_max_conn, N}).
   {ok, #net_state{}} | {ok, #net_state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
 init(Config) ->
-  ?DEBUG("network init/1 called~n"),
+  ?DEBUG("Initializing network module with config:~p", [Config]),
   erlang:process_flag(trap_exit, true),
   erlang:process_flag(priority, high),
   ServerSocket = start_listen(Config),
@@ -109,14 +109,31 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
+%% @doc 将配置文件中的TCP选项与默认的合并, 生成用于启动网络模块的TCP选项 @end
+merge_options(Options) ->
+  Map = #{},
+  lists:foreach(fun({K, V}) -> maps:put(K, V, Map) end, Options),
+  [begin
+     case Item of
+       binary -> binary;
+       {K, _} ->
+         case maps:get(K, Map, none) of
+           none -> Item;
+           V -> {K, V}
+         end
+     end
+   end || Item <- ?DEFAULT_OPTIONS
+  ].
+
 -spec(start_listen(Config :: #net_config{}) -> port()).
 %% @doc start TCP socket listen. @end
 start_listen(Config) ->
-  ?DEBUG("network start_listen/0 called~n"),
+  ?DEBUG("network module start listening on ~p", [Config#net_config.port]),
   #net_config{port = Port, options = Options} = Config,
-  case gen_tcp:listen(Port, Options) of
+  NewOptions = merge_options(Options),
+  case gen_tcp:listen(Port, NewOptions) of
     {ok, Socket} ->
-      ?INFO("Network app started at port ~p", [Port]),
+      ?INFO("network app listen on port ~p with options: ~p", [Port, NewOptions]),
       Socket;
     {error, Reason} ->
       ?ERROR("Error while open socket on port ~p, reason:~p", [Port, Reason]),
@@ -131,7 +148,7 @@ accept(State = #net_state{server_socket = ServerSocket}) ->
       ?DEBUG("Accept on server socket ~p, Ref:~p", [ServerSocket, Ref]),
       {noreply, State#net_state{ref = Ref}};
     Error ->
-      ?ERROR("Error while accept client connection, reason:~p~n", [Error]),
+      ?ERROR("Error while accept client connection, reason:~p", [Error]),
       {stop, {cannot_accept, Error}, State}
   end.
 
