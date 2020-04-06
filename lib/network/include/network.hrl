@@ -66,8 +66,8 @@
 %% 网络进程的状态记录
 %% @end
 -record(net_state, {
-  % current config
-  config :: #net_config{},
+  % the network receiver of this network app
+  receiver :: map(),
   % the server socket
   server_socket = 0 :: port(),
   % current used socket options.

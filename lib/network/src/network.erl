@@ -42,10 +42,11 @@ init(Config) ->
   ?DEBUG("Initializing network module with config:~p", [Config]),
   erlang:process_flag(trap_exit, true),
   erlang:process_flag(priority, high),
-  ServerSocket = start_listen(Config),
-  #net_config{max_conn = Max} = Config,
+  #net_config{max_conn = Max, receiver = Receiver, port = Port, options = Options} = Config,
+  ServerSocket = start_listen(Port, Options),
+  % start accept network connection
   gen_server:cast(self(), accept),
-  {ok, #net_state{server_socket = ServerSocket, max = Max, config = Config}}.
+  {ok, #net_state{server_socket = ServerSocket, max = Max, receiver = Receiver}}.
 
 %% @doc do set max allowed connections of the network server. @end
 handle_call({set_max_conn, N}, _From, State) ->
@@ -74,12 +75,32 @@ handle_cast(_Request, State) ->
 %% OTP 异步网络模块(prim_inet:async_accept)在收到客户端连接之后, 会通过消息将链接发送到监听者进程.
 %% 这一系列 handle_info({inet_xxx) 相关的函数就是用来接收网卡模块发送的连接信息的.
 %% @end
-handle_info({inet_async, ServerSock, Ref, {ok, ClientSocket}},
-            State = #net_state{server_socket = ServerSock, ref = Ref, count = Count}) ->
-  true = inet_db:register_socket(ClientSocket, inet_tcp),
-  ?DEBUG("Incoming client ServerSock:~p, Ref:~p, Sock:~p, State:~p", [ServerSock, Ref, ClientSocket, State]),
-  %% TODO 启动一个新的玩家进程, 并将tcp控制权交给此进程
-  accept(State#net_state{count = Count + 1});
+handle_info({inet_async, SSock, Ref, {ok, CSock}},
+            State = #net_state{server_socket = SSock, ref = Ref, count = Count, receiver = Rcv}) ->
+  true = inet_db:register_socket(CSock, inet_tcp),
+  ?DEBUG("Incoming client ServerSock:~p, Ref:~p, Sock:~p, State:~p", [SSock, Ref, CSock, State]),
+  % 为每个新建立的客户端启动一个新的进程, 用来处理新的网络连接, 并将tcp控制权交给此进程
+  #{sup := Sup} = Rcv,
+  NewState =
+  case supervisor:start_child(Sup, []) of
+    {ok, Child} ->
+      % 因 network 非法关闭时无需通知子进程,因而将子进程与 network 的监控关系改为单向的 monitor
+      _MonitorRef = erlang:monitor(process, Child),
+      true = erlang:unlink(Child),
+      case gen_tcp:controlling_process(CSock, Child) of
+        ok ->
+          State#net_state{count = Count + 1};
+        {error, Reason} ->
+          ?ERROR("Error while assign socket to process ~p, reason: ~p", [Sup, Reason]),
+          gen_tcp:close(CSock),
+          State
+      end;
+    Error ->
+      ?ERROR("Error handle new client connection: failed to start proceess: ~p, reason: ~p", [Sup, Error]),
+      gen_tcp:close(CSock),
+      State
+  end,
+  accept(NewState);
 handle_info({inet_async, LSock, Ref, {error, closed}}, State) ->
   ?INFO("Socket closed, LSock:~p, Ref:~p", [LSock, Ref]),
   {stop, normal, State};
@@ -124,10 +145,9 @@ merge_options(Options) ->
    end || Item <- ?DEFAULT_OPTIONS
   ].
 
--spec(start_listen(Config :: #net_config{}) -> port()).
+-spec(start_listen(Port :: non_neg_integer(), Options :: list()) -> port()).
 %% @doc start TCP socket listen. @end
-start_listen(Config) ->
-  #net_config{port = Port, options = Options} = Config,
+start_listen(Port, Options) ->
   NewOptions = merge_options(Options),
   case gen_tcp:listen(Port, NewOptions) of
     {ok, Socket} ->
