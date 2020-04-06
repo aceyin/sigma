@@ -111,8 +111,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% @doc 将配置文件中的TCP选项与默认的合并, 生成用于启动网络模块的TCP选项 @end
 merge_options(Options) ->
-  Map = #{},
-  lists:foreach(fun({K, V}) -> maps:put(K, V, Map) end, Options),
+  Map = maps:from_list(Options),
   [begin
      case Item of
        binary -> binary;
@@ -128,7 +127,6 @@ merge_options(Options) ->
 -spec(start_listen(Config :: #net_config{}) -> port()).
 %% @doc start TCP socket listen. @end
 start_listen(Config) ->
-  ?DEBUG("network module start listening on ~p", [Config#net_config.port]),
   #net_config{port = Port, options = Options} = Config,
   NewOptions = merge_options(Options),
   case gen_tcp:listen(Port, NewOptions) of
