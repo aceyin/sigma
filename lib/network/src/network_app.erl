@@ -23,7 +23,7 @@
   {ok, pid()} | {ok, pid(), State :: term()} | {error, Reason :: term()}).
 start(_Type, _Args) ->
   ?DEBUG("network_app:start/2 called~n"),
-  {ok, Config} = application:get_env(network, network_config),
+  {ok, Config} = application:get_env(network, net_config),
   case network_sup:start_link(Config) of
     {ok, Sup} -> {ok, Sup};
     Error -> Error
@@ -36,7 +36,7 @@ stop(_State) -> ok.
 -spec(start(Config :: #net_config{}) -> term()).
 start(Config) ->
   ?DEBUG("network_app:start/1 called with args:~p", [Config]),
-  application:set_env(network, network_config, Config),
+  application:set_env(network, net_config, Config),
   application:start(network),
   % start the network gen_server
   gen_server:start_link({local, network}, network, Config, []),

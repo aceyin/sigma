@@ -43,9 +43,9 @@ init(Config) ->
   erlang:process_flag(trap_exit, true),
   erlang:process_flag(priority, high),
   ServerSocket = start_listen(Config),
-  Max = 1000, %% TODO get from config file
+  #net_config{max_conn = Max} = Config,
   gen_server:cast(self(), accept),
-  {ok, #net_state{server_socket = ServerSocket, max = Max}}.
+  {ok, #net_state{server_socket = ServerSocket, max = Max, config = Config}}.
 
 %% @doc do set max allowed connections of the network server. @end
 handle_call({set_max_conn, N}, _From, State) ->
@@ -113,7 +113,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc start TCP socket listen. @end
 start_listen(Config) ->
   ?DEBUG("network start_listen/0 called~n"),
-  #net_config{addr = {_, Port}, options = Options} = Config,
+  #net_config{port = Port, options = Options} = Config,
   case gen_tcp:listen(Port, Options) of
     {ok, Socket} ->
       ?INFO("Network app started at port ~p", [Port]),

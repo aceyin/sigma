@@ -52,12 +52,14 @@
 %% 网络配置参数
 %% @end
 -record(net_config, {
-  %% 监听地址 {Ip::string(), Port::number()}
-  addr :: tuple(),
   %% TCP 选项
   options = ?DEFAULT_OPTIONS :: list(),
   %% 处理网络数据的接收器模块名称 #{sup=>module(), mod=>module()}
-  receiver :: map()
+  receiver :: map(),
+  %% 监听端口
+  port :: non_neg_integer(),
+  %% 最大连接数
+  max_conn :: non_neg_integer()
 }).
 
 %% @doc

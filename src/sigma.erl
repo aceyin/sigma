@@ -10,6 +10,7 @@
 -behaviour(application).
 -author("ace").
 
+-include("cores.hrl").
 -include_lib("network/include/network.hrl").
 
 %% Application callbacks
@@ -52,11 +53,9 @@ start() ->
 start_network() ->
   case config:get(server_config, network) of
     none -> error("No network config found in server_config");
-    #{options:=Options, receiver := Receiver} ->
-      case config:get(server_config, server) of
-        none -> error("No server config found in server_config");
-        #{listen :=Addr} ->
-          NetConf = #net_config{addr = Addr, receiver = Receiver, options = Options},
-          network_app:start(NetConf)
-      end
+    Map ->
+      #{options := Options, port := Port, max_conn := Max, receiver := Receiver} = Map,
+      network_app:start(#net_config{
+        options = Options, port = Port, max_conn = Max, receiver = Receiver
+      })
   end.
