@@ -10,6 +10,7 @@
 -author("ace").
 
 -behaviour(gen_server).
+-include("logger.hrl").
 
 %% API
 -export([start_link/0]).
@@ -51,10 +52,8 @@ start_link() ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
--spec(init(Args :: term()) ->
-  {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
-  {stop, Reason :: term()} | ignore).
 init([]) ->
+  ?INFO("######### 11"),
   {ok, #state{}}.
 
 %%--------------------------------------------------------------------
@@ -64,15 +63,8 @@ init([]) ->
 %%
 %% @end
 %%--------------------------------------------------------------------
--spec(handle_call(Request :: term(), From :: {pid(), Tag :: term()},
-                  State :: #state{}) ->
-                   {reply, Reply :: term(), NewState :: #state{}} |
-                   {reply, Reply :: term(), NewState :: #state{}, timeout() | hibernate} |
-                   {noreply, NewState :: #state{}} |
-                   {noreply, NewState :: #state{}, timeout() | hibernate} |
-                   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
-                   {stop, Reason :: term(), NewState :: #state{}}).
 handle_call(_Request, _From, State) ->
+  ?INFO("######### 22"),
   {reply, ok, State}.
 
 %%--------------------------------------------------------------------
@@ -82,11 +74,8 @@ handle_call(_Request, _From, State) ->
 %%
 %% @end
 %%--------------------------------------------------------------------
--spec(handle_cast(Request :: term(), State :: #state{}) ->
-  {noreply, NewState :: #state{}} |
-  {noreply, NewState :: #state{}, timeout() | hibernate} |
-  {stop, Reason :: term(), NewState :: #state{}}).
 handle_cast(_Request, State) ->
+  ?INFO("######### 33"),
   {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -99,11 +88,8 @@ handle_cast(_Request, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
--spec(handle_info(Info :: timeout() | term(), State :: #state{}) ->
-  {noreply, NewState :: #state{}} |
-  {noreply, NewState :: #state{}, timeout() | hibernate} |
-  {stop, Reason :: term(), NewState :: #state{}}).
 handle_info(_Info, State) ->
+  ?INFO("######### 44"),
   {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -117,9 +103,8 @@ handle_info(_Info, State) ->
 %% @spec terminate(Reason, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
--spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
-                State :: #state{}) -> term()).
 terminate(_Reason, _State) ->
+  ?INFO("######### 55"),
   ok.
 
 %%--------------------------------------------------------------------
@@ -130,9 +115,6 @@ terminate(_Reason, _State) ->
 %% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}
 %% @end
 %%--------------------------------------------------------------------
--spec(code_change(OldVsn :: term() | {down, term()}, State :: #state{},
-                  Extra :: term()) ->
-                   {ok, NewState :: #state{}} | {error, Reason :: term()}).
 code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 

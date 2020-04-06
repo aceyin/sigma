@@ -10,6 +10,7 @@
 -author("ace").
 
 -behaviour(supervisor).
+-include("logger.hrl").
 
 %% API
 -export([start_link/0]).
@@ -56,6 +57,7 @@ start_link() ->
   ignore |
   {error, Reason :: term()}).
 init([]) ->
+  ?INFO("@@@@@@@@@@@@@@@@@"),
   RestartStrategy = one_for_one,
   MaxRestarts = 1000,
   MaxSecondsBetweenRestarts = 3600,

@@ -70,8 +70,6 @@
   receiver :: map(),
   % the server socket
   server_socket = 0 :: port(),
-  % current used socket options.
-  options = ?DEFAULT_OPTIONS :: list(),
   % client count
   count = 0 :: non_neg_integer(),
   % max allowed connections

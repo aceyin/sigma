@@ -35,9 +35,6 @@ set_max_conn(N) -> gen_server:cast(?MODULE, {set_max_conn, N}).
 %%% gen_server callbacks
 %%%===================================================================
 
--spec(init(Config :: #net_config{}) ->
-  {ok, #net_state{}} | {ok, #net_state{}, timeout() | hibernate} |
-  {stop, Reason :: term()} | ignore).
 init(Config) ->
   ?DEBUG("Initializing network module with config:~p", [Config]),
   erlang:process_flag(trap_exit, true),
@@ -56,10 +53,6 @@ handle_call(Request, From, State) ->
   ?WARNING("network server received unknown call request from ~p: ~p", [From, Request]),
   {noreply, State}.
 
--spec(handle_cast(Request :: term(), State :: #net_state{}) ->
-  {noreply, NewState :: #net_state{}} |
-  {noreply, NewState :: #net_state{}, timeout() | hibernate} |
-  {stop, Reason :: term(), NewState :: #net_state{}}).
 %% @doc
 %% 开始接受下一次网络请求.
 %% 因为网络服务器的模式设置为{active, false}, 因此每次在处理完新进来的网络连接之后,
@@ -80,15 +73,17 @@ handle_info({inet_async, SSock, Ref, {ok, CSock}},
   true = inet_db:register_socket(CSock, inet_tcp),
   ?DEBUG("Incoming client ServerSock:~p, Ref:~p, Sock:~p, State:~p", [SSock, Ref, CSock, State]),
   % 为每个新建立的客户端启动一个新的进程, 用来处理新的网络连接, 并将tcp控制权交给此进程
-  #{sup := Sup} = Rcv,
+  #{sup := Sup, mod := _Mod} = Rcv,
   NewState =
   case supervisor:start_child(Sup, []) of
     {ok, Child} ->
+      ?DEBUG("Starting child for handle network connection, child:~p", [Child]),
       % 因 network 非法关闭时无需通知子进程,因而将子进程与 network 的监控关系改为单向的 monitor
       _MonitorRef = erlang:monitor(process, Child),
       true = erlang:unlink(Child),
       case gen_tcp:controlling_process(CSock, Child) of
         ok ->
+          ?DEBUG("Socket controlling process moved from network to ~p", [Child]),
           State#net_state{count = Count + 1};
         {error, Reason} ->
           ?ERROR("Error while assign socket to process ~p, reason: ~p", [Sup, Reason]),
@@ -101,22 +96,23 @@ handle_info({inet_async, SSock, Ref, {ok, CSock}},
       State
   end,
   accept(NewState);
-handle_info({inet_async, LSock, Ref, {error, closed}}, State) ->
-  ?INFO("Socket closed, LSock:~p, Ref:~p", [LSock, Ref]),
-  {stop, normal, State};
-handle_info({inet_async, LSock, Ref, Error}, State) ->
-  ?ERROR("Accept error, LSock:~p, Ref:~p, Error:~p", [LSock, Ref, Error]),
+%% @doc 处理客户端连接关闭时的回调 @end
+handle_info({inet_async, _SSock, Ref, {error, closed}}, State = #net_state{count = Count}) ->
+  NewState = State#net_state{count = Count - 1},
+  ?INFO("Client socket closed, ref: ~p, state:~p", [Ref, NewState]),
+  {stop, normal, NewState};
+handle_info({inet_async, _SSock, Ref, Error}, State) ->
+  ?ERROR("Accept new client connection error, ref:~p, reason:~p", [Ref, Error]),
   accept(State);
+%% @doc 处理 acceptor 子进程退出的回调 @end
 handle_info({'DOWN', _Ref, process, Pid, Info}, State = #net_state{count = Count}) ->
-  ?INFO("Client process ~p closed connection, reason:~p", [Pid, Info]),
+  ?INFO("Client process ~p exited, reason:~p", [Pid, Info]),
   {noreply, State#net_state{count = Count - 1}};
 handle_info(_Info, State) ->
   {noreply, State}.
-
--spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
-                State :: #net_state{}) -> term()).
-terminate(_Reason, #net_state{server_socket = Socket}) ->
-  ?INFO("network app receive terminate for reason ~p", [_Reason]),
+%% @doc 处理 network app 终止时的回调 @end
+terminate(Reason, #net_state{server_socket = Socket}) ->
+  ?INFO("network app receive terminate for reason ~p", [Reason]),
   case erlang:is_port(Socket) of
     true -> close_socket(Socket);
     false -> ok
