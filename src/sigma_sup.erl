@@ -21,7 +21,15 @@
 
 start_link() ->
   io:format("sigma_sup:start_link/0 called ~n"),
-  supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+  {ok, Sup} = supervisor:start_link({local, ?SERVER}, ?MODULE, []),
+  % TODO 将系统启动时需同时启动的模块放到配置里面或者封装成自动加载的方式
+  Spec = {
+    echo_sup,
+    {echo_sup, start_link, []},
+    permanent, infinity, supervisor, [echo_sup]
+  },
+  supervisor:start_child(?MODULE, Spec),
+  {ok, Sup}.
 
 %%====================================================================
 %% Supervisor callbacks
