@@ -52,8 +52,8 @@ load(FilePath) ->
           Bin = compiler:compile(Mod, TermList),
           code:purge(Mod),
           {module, Mod} = code:load_binary(Mod, atom_to_list(Mod) ++ ".erl", Bin),
-          ?INFO("Compile config file ~p into module ~p success~n", [FilePath, Mod]),
-          ?INFO("All config items in module ~p are: ~p~n ", [Mod, config:all(Mod)]),
+          io:format("Compile config file ~p into module ~p success~n", [FilePath, Mod]),
+          io:format("All config items in module ~p are: ~p~n ", [Mod, lists:concat(lists:join(",", config:all(Mod)))]),
           ok;
         Error ->
           error(io:format("Error while parse config file ~p, reason: ~p", [BaseName, Error]))

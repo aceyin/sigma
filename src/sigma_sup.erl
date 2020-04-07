@@ -26,11 +26,6 @@ start_link() ->
 %%====================================================================
 %% Supervisor callbacks
 %%====================================================================
-
-%% Child :: #{id => Id, start => {M, F, A}}
-%% Optional keys are restart, shutdown, type, modules.
-%% Before OTP 18 tuples must be used to specify a child. e.g.
-%% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
   io:format("sigma_sup:init/1 called ~n"),
   {ok, {{one_for_all, 0, 1}, []}}.

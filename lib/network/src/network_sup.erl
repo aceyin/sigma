@@ -12,28 +12,20 @@
 
 -behaviour(supervisor).
 %% API
--export([start_link/0, start_link/1]).
+-export([start_link/1]).
 %% Supervisor callbacks
 -export([init/1]).
 
--type strategy() :: supervisor:strategy().
--type nni() :: non_neg_integer().
--type child_spec() :: supervisor:child_spec().
-
--spec(start_link() -> {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
-start_link() -> start_link([]).
-start_link(Args) ->
+start_link(Config) ->
   ?DEBUG("network_sup:start_link/1 called"),
-  supervisor:start_link({local, ?MODULE}, ?MODULE, Args).
+  supervisor:start_link({local, ?MODULE}, ?MODULE, Config).
 
 %% @doc supervisor callback.
--spec(init(Args :: term()) ->
-  {ok, {{strategy(), nni(), nni()}, [child_spec()]}} | ignore | {error, Reason :: term()}).
-init(Args) ->
+init(Config) ->
   ?DEBUG("network_sup:init/1 called"),
   % Defines the function call used to start the child process.
   % It must be a module-function-arguments tuple {M,F,A} used as apply(M,F,A).
-  Start = {network, start_link, [Args]},
+  Start = {network, start_link, [Config]},
   % Defines when a terminated child process must be restarted.
   % permanent: child process is always restarted.
   % temporary: child process is never restarted.
