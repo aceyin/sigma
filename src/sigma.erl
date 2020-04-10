@@ -30,7 +30,7 @@
 start() ->
   try
     config:load(?CONF_FILE),
-    initializer:init_logger(),
+    init_logger(),
     ?INFO("******************* starting sigma [~p] *******************~n", [calendar:local_time()]),
     % ensure all dependent app started
     application:ensure_all_started(sasl),
@@ -71,3 +71,22 @@ start(Type, Args) ->
   {ok, Sup}.
 
 stop(_State) -> ok.
+
+%% ===================================================================
+%% INTERNAL FUNCTIONS
+%% ===================================================================
+
+%% @doc 用 server.config 里面配置的参数初始化日志系统. @end
+init_logger() ->
+  LogConfig = config:get(server_config, logger, ?DEFAULT_LOGGER),
+  #{level := Level, format := Format, file := File} = LogConfig,
+  logger:set_handler_config(default, level, Level),
+  logger:set_handler_config(default, file, File),
+  logger:update_formatter_config(default, #{
+    time_offset=>"Z",
+    time_designator=>$\s,
+    single_line => true,
+    template => Format
+  }),
+  ?INFO("Use logger config: ~p", [LogConfig]),
+  ok.
