@@ -34,7 +34,6 @@ start() ->
     ?INFO("******************* starting sigma [~p] *******************~n", [calendar:local_time()]),
     % ensure all dependent app started
     application:ensure_all_started(sasl),
-    start_network(),
     application:start(?MODULE),
     ?INFO("******************* sigma started [~p] *******************", [calendar:local_time()]),
     ok
@@ -45,21 +44,7 @@ start() ->
       init:stop(-1)
   end.
 
-
-%% @doc
-%% start the network listener according to the config
-%% @end
-start_network() ->
-  case config:get(server_config, network) of
-    none -> error("No network config found in server_config");
-    Map ->
-      ?DEBUG("Starting network app with config: ~p", [Map]),
-      #{options := Options, port := Port, max_conn := Max, receiver := Receiver} = Map,
-      network_app:start(#net_config{
-        options = Options, port = Port, max_conn = Max, receiver = Receiver
-      })
-  end.
-
+%% @doc stop the server app. @end
 stop() -> application:stop(sigma).
 
 %%--------------------------------------------------------------------
@@ -90,3 +75,15 @@ init_logger() ->
   }),
   ?INFO("Use logger config: ~p", [LogConfig]),
   ok.
+
+%% @doc start the network listener according to the config. @end
+start_network() ->
+  case config:get(server_config, network) of
+    none -> error("No network config found in server_config");
+    Map ->
+      ?DEBUG("Starting network app with config: ~p", [Map]),
+      #{options := Options, port := Port, max_conn := Max, receiver := Receiver} = Map,
+      network_app:start(#net_config{
+        options = Options, port = Port, max_conn = Max, receiver = Receiver
+      })
+  end.
