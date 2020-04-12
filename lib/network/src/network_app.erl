@@ -16,9 +16,7 @@
 %% API functions.
 -export([start/1, stop/0]).
 
-%% @doc
-%% the application start callback.
-%% @end
+%% @doc the application start callback. @end
 -spec(start(Type :: normal | {takeover, node()} | {failover, node()}, Args :: term()) ->
   {ok, pid()} | {ok, pid(), State :: term()} | {error, Reason :: term()}).
 start(_Type, _Args) ->

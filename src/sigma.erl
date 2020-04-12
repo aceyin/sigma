@@ -31,15 +31,15 @@ start() ->
   try
     config:load(?CONF_FILE),
     init_logger(),
-    ?INFO("******************* starting sigma [~p] *******************~n", [calendar:local_time()]),
+    ?INFO("******************* STARTING SIGMA [~p] *******************~n", [calendar:local_time()]),
     % ensure all dependent app started
     application:ensure_all_started(sasl),
     application:start(?MODULE),
-    ?INFO("******************* sigma started [~p] *******************", [calendar:local_time()]),
+    ?INFO("******************* SIGMA STARTED [~p] *******************", [calendar:local_time()]),
     ok
   catch
     _Type:_Error ->
-      io:format("******************* SERVER START FAILED *******************~n~p:~p~n~p~n",
+      io:format("******************* SIGMA START FAILED *******************~n~p:~p~n~p~n",
                 [_Type, _Error, erlang:get_stacktrace()]),
       init:stop(-1)
   end.
