@@ -10,7 +10,7 @@
 -behaviour(application).
 -author("ace").
 
--include("cores.hrl").
+-include("sigma.hrl").
 -include_lib("network/include/network.hrl").
 
 %% Application callbacks
@@ -29,9 +29,9 @@
 %% @doc start the server. @end
 start() ->
   try
-    config:load(?CONF_FILE),
-    init_logger(),
-    ?INFO("******************* STARTING SIGMA [~p] *******************~n", [calendar:local_time()]),
+    load_config(),
+    setup_logger(),
+    ?INFO("******************* STARTING SIGMA [~p] *******************", [calendar:local_time()]),
     % ensure all dependent app started
     application:ensure_all_started(sasl),
     application:start(?MODULE),
@@ -45,7 +45,7 @@ start() ->
   end.
 
 %% @doc stop the server app. @end
-stop() -> application:stop(sigma).
+stop() -> application:stop(?SIGMA).
 
 %%--------------------------------------------------------------------
 %% Application callbacks.
@@ -61,9 +61,18 @@ stop(_State) -> ok.
 %% INTERNAL FUNCTIONS
 %% ===================================================================
 
+%% @doc 加载服务配置文件, 并将其与 application:get_env 绑定 @end
+load_config() ->
+  % 加载配置文件
+  config:load(?CONF_FILE),
+  All = config:all(?SIGMA_CONFIG),
+  Fun = fun(Key) -> application:set_env(?SIGMA, Key, config:get(?SIGMA_CONFIG, Key)) end,
+  lists:foreach(Fun, All),
+  ok.
+
 %% @doc 用 server.config 里面配置的参数初始化日志系统. @end
-init_logger() ->
-  LogConfig = config:get(server_config, logger, ?DEFAULT_LOGGER),
+setup_logger() ->
+  LogConfig = config:get(?SIGMA_CONFIG, logger, ?DEFAULT_LOGGER),
   #{level := Level, format := Format, file := File} = LogConfig,
   logger:set_handler_config(default, level, Level),
   logger:set_handler_config(default, file, File),
@@ -78,8 +87,8 @@ init_logger() ->
 
 %% @doc start the network listener according to the config. @end
 start_network() ->
-  case config:get(server_config, network) of
-    none -> error("No network config found in server_config");
+  case config:get(?SIGMA_CONFIG, network) of
+    none -> error("No network config found in sigma_config");
     Map ->
       ?DEBUG("Starting network app with config: ~p", [Map]),
       #{options := Options, port := Port, max_conn := Max, receiver := Receiver} = Map,

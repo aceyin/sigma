@@ -95,6 +95,6 @@ erl +P $ERL_PROCESSES \
   -name NODE_NAME \
   -setcookie COOKIE \
   -boot start_sasl \
-  -config server.config \
+  -config sigma.config \
   -kernel error_logger \{file,\""$LOG_PATH"\"\} \
   -s sigma server_start

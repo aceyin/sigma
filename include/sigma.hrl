@@ -4,10 +4,11 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created : 16. 3月 2020 9:47 下午
+%%% Created : 12. 4月 2020 11:21 下午
 %%%-------------------------------------------------------------------
 -author("ace").
 
-
-%% @doc The key for get server base directory from os environment. @end
--define(BASE_DIR, "BASE_DIR").
+%% @doc 应用程序名称 @end
+-define(SIGMA, sigma).
+%% @doc 系统配置文件的 key @end
+-define(SIGMA_CONFIG, sigma_config).
