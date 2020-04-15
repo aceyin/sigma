@@ -16,16 +16,16 @@
 %% Supervisor callbacks
 -export([init/1]).
 
-start_link(Config) ->
+start_link([]) ->
   ?DEBUG("network_sup:start_link/1 called"),
-  supervisor:start_link({local, ?MODULE}, ?MODULE, Config).
+  supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %% @doc supervisor callback.
-init(Config) ->
+init(_) ->
   ?DEBUG("network_sup:init/1 called"),
   % Defines the function call used to start the child process.
   % It must be a module-function-arguments tuple {M,F,A} used as apply(M,F,A).
-  Start = {network, start_link, [Config]},
+  Start = {network_server, start_link, []},
   % Defines when a terminated child process must be restarted.
   % permanent: child process is always restarted.
   % temporary: child process is never restarted.
@@ -40,8 +40,16 @@ init(Config) ->
   Type = worker,
   % Used by the release handler during code replacement to determine which processes
   % are using a certain module.
-  Modules = [network],
-  ChildSpec = {network, Start, Restart, Shutdown, Type, Modules},
+  Modules = [network_server],
+  %  ChildSpec = {network, Start, Restart, Shutdown, Type, Modules},
+  ChildSpec = #{
+    id => network_server,
+    start => Start,
+    restart => Restart,
+    shutdown => Shutdown,
+    type => Type,
+    modules => Modules
+  },
   % one_for_one:
   %     If one child process terminates and is to be restarted, only that child process is affected.
   % one_for_all:

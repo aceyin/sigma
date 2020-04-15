@@ -6,22 +6,22 @@
 %%% @end
 %%% Created : 25. 3月 2020 11:37 下午
 %%%-------------------------------------------------------------------
--module(network).
+-module(network_server).
 -author("ace").
 -behaviour(gen_server).
 -include("network.hrl").
 
 %% API
--export([start_link/1, stop/0, set_max_conn/1]).
+-export([start_link/0, stop/0, set_max_conn/1]).
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-start_link(Config) ->
+start_link() ->
   ?INFO("Starting network server"),
-  gen_server:start_link({local, ?MODULE}, ?MODULE, Config, []).
+  gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %% @doc stop network server. @end
 stop() ->
@@ -35,15 +35,20 @@ set_max_conn(N) -> gen_server:cast(?MODULE, {set_max_conn, N}).
 %%% gen_server callbacks
 %%%===================================================================
 
-init(Config) ->
-  ?DEBUG("Initializing network module with config:~p", [Config]),
-  erlang:process_flag(trap_exit, true),
-  erlang:process_flag(priority, high),
-  #net_config{max_conn = Max, receiver = Receiver, port = Port, options = Options} = Config,
-  ServerSocket = start_listen(Port, Options),
-  % start accept network connection
-  gen_server:cast(self(), accept),
-  {ok, #net_state{server_socket = ServerSocket, max = Max, receiver = Receiver}}.
+init(_) ->
+  ?DEBUG("1111111"),
+  case application:get_env(network, config) of
+    undefined -> error("No network config found in sigma_config");
+    {ok, Map} ->
+      erlang:process_flag(trap_exit, true),
+      erlang:process_flag(priority, high),
+      ?DEBUG("Starting network server with config: ~p", [Map]),
+      #{options := Options, port := Port, max_conn := Max, receiver := Receiver} = Map,
+      ServerSocket = start_listen(Port, Options),
+      % start accept network connection
+      gen_server:cast(self(), accept),
+      {ok, #net_state{server_socket = ServerSocket, max = Max, receiver = Receiver}}
+  end.
 
 %% @doc do set max allowed connections of the network server. @end
 handle_call({set_max_conn, N}, _From, State) ->

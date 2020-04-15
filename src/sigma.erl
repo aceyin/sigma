@@ -19,7 +19,7 @@
 -export([start/0, stop/0]).
 
 %% TODO 从命令行传递进来
--define(CONF_FILE, "/Users/ace/Documents/workspace/erlang/sigma/conf/server.config").
+-define(CONF_FILE, "/Users/ace/Documents/workspace/erlang/sigma/conf/sigma.config").
 
 
 %%--------------------------------------------------------------------
@@ -66,11 +66,11 @@ load_config() ->
   % 加载配置文件
   config:load(?CONF_FILE),
   All = config:all(?SIGMA_CONFIG),
-  Fun = fun(Key) -> application:set_env(?SIGMA, Key, config:get(?SIGMA_CONFIG, Key)) end,
+  Fun = fun(Key) -> application:set_env(Key, config, config:get(?SIGMA_CONFIG, Key)) end,
   lists:foreach(Fun, All),
   ok.
 
-%% @doc 用 server.config 里面配置的参数初始化日志系统. @end
+%% @doc 用 sigma.config 里面配置的参数初始化日志系统. @end
 setup_logger() ->
   LogConfig = config:get(?SIGMA_CONFIG, logger, ?DEFAULT_LOGGER),
   #{level := Level, format := Format, file := File} = LogConfig,
@@ -84,15 +84,3 @@ setup_logger() ->
   }),
   ?INFO("Use logger config: ~p", [LogConfig]),
   ok.
-
-%% @doc start the network listener according to the config. @end
-start_network() ->
-  case config:get(?SIGMA_CONFIG, network) of
-    none -> error("No network config found in sigma_config");
-    Map ->
-      ?DEBUG("Starting network app with config: ~p", [Map]),
-      #{options := Options, port := Port, max_conn := Max, receiver := Receiver} = Map,
-      network_app:start(#net_config{
-        options = Options, port = Port, max_conn = Max, receiver = Receiver
-      })
-  end.
