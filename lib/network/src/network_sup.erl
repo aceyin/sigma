@@ -26,16 +26,13 @@ init(_) ->
   % Defines the function call used to start the child process.
   % It must be a module-function-arguments tuple {M,F,A} used as apply(M,F,A).
   Start = {network_server, start_link, []},
-  % Defines when a terminated child process must be restarted.
-  % permanent: child process is always restarted.
-  % temporary: child process is never restarted.
-  % transient: child process is restarted only if it terminates abnormally,
-  %            that is, with another exit reason than normal, shutdown, or {shutdown,Term}.
+  % 定义何时必须重新启动终止的子进程。
+  % permanent: 子进程始终重新启动。
+  % temporary: 子进程永远不会重新启动。
+  % transient: 子进程仅在异常终止时（即，由于 normal，shutdown 或 {shutdown，Term} 以外的其他退出原因）异常终止时才重新启动。
   Restart = permanent,
-  % The supervisor tells the child process to terminate by calling exit(Child,shutdown)
-  % and then wait for an exit signal with reason shutdown back from the child process.
-  % If no exit signal is received within the specified number of milliseconds,
-  % the child process is unconditionally terminated using exit(Child,kill).
+  % Supervisor 通过调用exit（Child，shutdown）告诉子进程终止，然后等待退出信号，并从子进程中返回原因shutdown。
+  % 如果在指定的毫秒数内未收到退出信号，则使用exit（Child，kill）无条件终止子进程。
   Shutdown = 20000,
   Type = worker,
   % Used by the release handler during code replacement to determine which processes
@@ -50,18 +47,10 @@ init(_) ->
     type => Type,
     modules => Modules
   },
-  % one_for_one:
-  %     If one child process terminates and is to be restarted, only that child process is affected.
-  % one_for_all:
-  %     If one child process terminates and is to be restarted, all other child processes are
-  %     terminated and then all child processes are restarted.
-  % rest_for_one:
-  %     If one child process terminates and is to be restarted, the 'rest' of the child processes
-  %     (that is, the child processes after the terminated child process in the start order)
-  %     are terminated.
-  % simple_one_for_one:
-  %     A simplified one_for_one supervisor, where all child processes are dynamically added
-  %     instances of the same process type, that is, running the same code.
+  % one_for_one: 如果一个子进程终止并要重新启动，则仅会影响该子进程。
+  % one_for_all: 如果一个子进程终止并要重新启动，则所有其他子进程终止，然后重新启动所有子进程。
+  % rest_for_one: 如果一个子进程终止并要重新启动，则子进程的“其余”（即，按照启动顺序在终止的子进程之后的子进程）将终止。
+  % simple_one_for_one: 简化的 one_for_one，其中所有子进程都是动态添加的，具有相同进程类型（即，运行相同代码）的实例。
   RestartStrategy = one_for_one,
   MaxRestarts = 10,
   MaxSecondsBetweenRestarts = 10,

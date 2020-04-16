@@ -36,7 +36,6 @@ set_max_conn(N) -> gen_server:cast(?MODULE, {set_max_conn, N}).
 %%%===================================================================
 
 init(_) ->
-  ?DEBUG("1111111"),
   case application:get_env(network, config) of
     undefined -> error("No network config found in sigma_config");
     {ok, Map} ->
@@ -45,7 +44,7 @@ init(_) ->
       ?DEBUG("Starting network server with config: ~p", [Map]),
       #{options := Options, port := Port, max_conn := Max, receiver := Receiver} = Map,
       ServerSocket = start_listen(Port, Options),
-      % start accept network connection
+      % start to accept network connection
       gen_server:cast(self(), accept),
       {ok, #net_state{server_socket = ServerSocket, max = Max, receiver = Receiver}}
   end.
