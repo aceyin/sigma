@@ -73,30 +73,29 @@ handle_call(_Request, _From, State) ->
   {reply, ok, State}.
 
 handle_cast({active, CSock}, State) ->
-  try
-    case prim_inet:recv(CSock, 0) of
-      {ok, Data} ->
-        ?INFO("Receive data from client: ~p", [Data]),
-        {noreply, State};
-      Error ->
-        gen_tcp:close(CSock),
-        ?ERROR("Error while receive data from socket~p", [Error]),
-        {stop, normal, State}
-    end
-  catch
-    Type:Err ->
-      gen_tcp:close(CSock),
-      ?ERROR("Error while receive data from socket~p~p", [Type, Err]),
-      {stop, normal, State}
-  end;
+  async_recv(CSock, 0, -1),
+  {noreply, State};
 handle_cast(_Request, State) ->
   ?INFO("######### 33"),
   {noreply, State}.
-handle_info({inet_async, _CSock, _Ref, {ok, _Data}}, State) ->
+handle_info({inet_async, CSock, _Ref, {ok, Data}}, State) ->
+  ?INFO("Receive data from client: ~p", [Data]),
+  async_recv(CSock, 0, -1),
   {noreply, State};
 handle_info(_Info, State) ->
   ?INFO("######### 44"),
   {noreply, State}.
+
+
+%% 接受信息
+async_recv(Sock, Length, Timeout) when is_port(Sock) ->
+  case prim_inet:async_recv(Sock, Length, Timeout) of
+    {error, Reason} -> throw({Reason});
+    {ok, Res} -> Res;
+    Res -> Res
+  end;
+async_recv(_Sock, _Len, _Timeout) ->
+  {error, "param[1] is not a port"}.
 
 %%--------------------------------------------------------------------
 %% @private
