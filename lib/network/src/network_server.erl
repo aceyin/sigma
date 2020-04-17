@@ -77,17 +77,18 @@ handle_info({inet_async, SSock, Ref, {ok, CSock}},
   true = inet_db:register_socket(CSock, inet_tcp),
   ?DEBUG("Incoming client ServerSock:~p, Ref:~p, Sock:~p, State:~p", [SSock, Ref, CSock, State]),
   % 为每个新建立的客户端启动一个新的进程, 用来处理新的网络连接, 并将tcp控制权交给此进程
-  #{sup := Sup, mod := _Mod} = Rcv,
+  #{sup := Sup, mod := Mod} = Rcv,
   NewState =
   case supervisor:start_child(Sup, []) of
-    {ok, Child} ->
-      ?DEBUG("Starting child for handle network connection, child:~p", [Child]),
+    {ok, ReceiverPid} ->
+      ?DEBUG("Starting child for handle network connection, child:~p", [ReceiverPid]),
       % 因 network 非法关闭时无需通知子进程,因而将子进程与 network 的监控关系改为单向的 monitor
-      _MonitorRef = erlang:monitor(process, Child),
-      true = erlang:unlink(Child),
-      case gen_tcp:controlling_process(CSock, Child) of
+      _MonitorRef = erlang:monitor(process, ReceiverPid),
+      true = erlang:unlink(ReceiverPid),
+      case gen_tcp:controlling_process(CSock, ReceiverPid) of
         ok ->
-          ?DEBUG("Socket controlling process moved from network to ~p", [Child]),
+          ?DEBUG("Socket controlling process moved from network to ~p", [ReceiverPid]),
+          Mod:active(ReceiverPid, CSock),
           State#net_state{count = Count + 1};
         {error, Reason} ->
           ?ERROR("Error while assign socket to process ~p, reason: ~p", [Sup, Reason]),

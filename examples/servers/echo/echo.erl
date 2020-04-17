@@ -13,7 +13,7 @@
 -include("logger.hrl").
 
 %% API
--export([start_link/0]).
+-export([start_link/0, active/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -58,6 +58,9 @@ init([]) ->
   process_flag(trap_exit, true),
   {ok, #state{}}.
 
+active(Pid, CSock) ->
+  gen_server:cast(Pid, {active, CSock}).
+
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
@@ -69,17 +72,27 @@ handle_call(_Request, _From, State) ->
   ?INFO("######### 22"),
   {reply, ok, State}.
 
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Handling cast messages
-%%
-%% @end
-%%--------------------------------------------------------------------
+handle_cast({active, CSock}, State) ->
+  try
+    case prim_inet:recv(CSock, 0) of
+      {ok, Data} ->
+        ?INFO("Receive data from client: ~p", [Data]),
+        {noreply, State};
+      Error ->
+        gen_tcp:close(CSock),
+        ?ERROR("Error while receive data from socket~p", [Error]),
+        {stop, normal, State}
+    end
+  catch
+    Type:Err ->
+      gen_tcp:close(CSock),
+      ?ERROR("Error while receive data from socket~p~p", [Type, Err]),
+      {stop, normal, State}
+  end;
 handle_cast(_Request, State) ->
   ?INFO("######### 33"),
   {noreply, State}.
-handle_info({inet_async, CSock, Ref, {ok, Data}}, State) ->
+handle_info({inet_async, _CSock, _Ref, {ok, _Data}}, State) ->
   {noreply, State};
 handle_info(_Info, State) ->
   ?INFO("######### 44"),
