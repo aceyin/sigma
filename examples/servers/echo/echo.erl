@@ -35,6 +35,7 @@
 -spec(start_link() ->
   {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
+  ?INFO("echo server start_link called"),
   gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 %%%===================================================================
@@ -78,17 +79,8 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Request, State) ->
   ?INFO("######### 33"),
   {noreply, State}.
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Handling all non call/cast messages
-%%
-%% @spec handle_info(Info, State) -> {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, State}
-%% @end
-%%--------------------------------------------------------------------
+handle_info({inet_async, CSock, Ref, {ok, Data}}, State) ->
+  {noreply, State};
 handle_info(_Info, State) ->
   ?INFO("######### 44"),
   {noreply, State}.
