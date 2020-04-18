@@ -36,11 +36,12 @@ set_max_conn(N) -> gen_server:cast(?MODULE, {set_max_conn, N}).
 %%%===================================================================
 
 init(_) ->
+  erlang:process_flag(trap_exit, true),
+  erlang:process_flag(priority, high),
+
   case application:get_env(network, config) of
     undefined -> error("No network config found in sigma_config");
     {ok, Map} ->
-      erlang:process_flag(trap_exit, true),
-      erlang:process_flag(priority, high),
       ?DEBUG("Starting network server with config: ~p", [Map]),
       #{options := Options, port := Port, max_conn := Max, receiver := Receiver} = Map,
       ServerSocket = start_listen(Port, Options),
@@ -77,9 +78,9 @@ handle_info({inet_async, SSock, Ref, {ok, CSock}},
   true = inet_db:register_socket(CSock, inet_tcp),
   ?DEBUG("Incoming client ServerSock:~p, Ref:~p, Sock:~p, State:~p", [SSock, Ref, CSock, State]),
   % 为每个新建立的客户端启动一个新的进程, 用来处理新的网络连接, 并将tcp控制权交给此进程
-  #{sup := Sup, mod := Mod} = Rcv,
+  {Mod, _Fun} = Rcv,
   NewState =
-  case supervisor:start_child(Sup, []) of
+  case supervisor:start_child(network_receiver_sup, []) of
     {ok, ReceiverPid} ->
       ?DEBUG("Starting child for handle network connection, child:~p", [ReceiverPid]),
       % 因 network 非法关闭时无需通知子进程,因而将子进程与 network 的监控关系改为单向的 monitor
@@ -91,12 +92,12 @@ handle_info({inet_async, SSock, Ref, {ok, CSock}},
           Mod:active(ReceiverPid, CSock),
           State#net_state{count = Count + 1};
         {error, Reason} ->
-          ?ERROR("Error while assign socket to process ~p, reason: ~p", [Sup, Reason]),
+          ?ERROR("Error while assign socket to process reason: ~p", [Reason]),
           gen_tcp:close(CSock),
           State
       end;
     Error ->
-      ?ERROR("Error handle new client connection: failed to start proceess: ~p, reason: ~p", [Sup, Error]),
+      ?ERROR("Error handle new client connection, reason: ~p", [Error]),
       gen_tcp:close(CSock),
       State
   end,
