@@ -81,15 +81,15 @@ handle_info({inet_async, SSock, Ref, {ok, CSock}},
   {Mod, _Fun} = Rcv,
   NewState =
   case supervisor:start_child(network_receiver_sup, []) of
-    {ok, ReceiverPid} ->
-      ?DEBUG("Starting child for handle network connection, child:~p", [ReceiverPid]),
+    {ok, Pid} ->
+      ?DEBUG("Starting child for handle network connection, child:~p", [Pid]),
       % 因 network 非法关闭时无需通知子进程,因而将子进程与 network 的监控关系改为单向的 monitor
-      _MonitorRef = erlang:monitor(process, ReceiverPid),
-      true = erlang:unlink(ReceiverPid),
-      case gen_tcp:controlling_process(CSock, ReceiverPid) of
+      _MonitorRef = erlang:monitor(process, Pid),
+      true = erlang:unlink(Pid),
+      case gen_tcp:controlling_process(CSock, Pid) of
         ok ->
-          ?DEBUG("Socket controlling process moved from network to ~p", [ReceiverPid]),
-          Mod:active(ReceiverPid, CSock),
+          ?DEBUG("Socket controlling process moved from network to ~p", [Pid]),
+          Mod:take_over(Pid, CSock),
           State#net_state{count = Count + 1};
         {error, Reason} ->
           ?ERROR("Error while assign socket to process reason: ~p", [Reason]),

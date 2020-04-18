@@ -10,9 +10,10 @@
 -author("ace").
 
 -behaviour(gen_server).
+-include("logger.hrl").
 
 %% API
--export([start_link/0]).
+-export([start_link/0, take_over/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -35,7 +36,7 @@
 %% @doc
 %% 在本服务收到所托管的Socket的数据时会被自动调用.
 %% @end
--callback(on_receive()->ok).
+-callback(on_receive(Data) -> ok).
 
 %%%===================================================================
 %%% API
@@ -57,7 +58,7 @@ start_link() ->
 %% @end
 -spec(take_over(Pid :: pid(), CSock :: port()) -> ok).
 take_over(Pid, CSock) ->
-  ok.
+  gen_server:cast(Pid, {active, CSock}).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -100,23 +101,23 @@ handle_call(_Request, _From, State) ->
   {noreply, NewState :: #state{}} |
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), NewState :: #state{}}).
+handle_cast({active, CSock}, State) ->
+  async_recv(CSock, 0, -1),
+  {noreply, State};
 handle_cast(_Request, State) ->
   {noreply, State}.
 
-%%--------------------------------------------------------------------
-%% @private
 %% @doc
-%% Handling all non call/cast messages
-%%
-%% @spec handle_info(Info, State) -> {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, State}
+%% 使用 prim_inet 的异步接口(async_accept, async_recv)时, 如果底层网络模块
+%% 有收到新的连接/新的数据, 那么将会向 async_accept, async_recv 的调用者
+%% (必须是一个gen_server)发送一条通知({inet_async, Socket, Ref, ...})
+%% 调用者进程需要增加对应的 handle_info({inet_async,...},State) 函数
+%% 用来处理异步网络数据.
 %% @end
-%%--------------------------------------------------------------------
--spec(handle_info(Info :: timeout() | term(), State :: #state{}) ->
-  {noreply, NewState :: #state{}} |
-  {noreply, NewState :: #state{}, timeout() | hibernate} |
-  {stop, Reason :: term(), NewState :: #state{}}).
+handle_info({inet_async, CSock, _Ref, {ok, Data}}, State) ->
+  ?MODULE:on_receive(Data),
+  async_recv(CSock, 0, -1),
+  {noreply, State};
 handle_info(_Info, State) ->
   {noreply, State}.
 
@@ -153,3 +154,20 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+%% @doc
+%% 异步接受Socket的数据.
+%% @param Socket::port() 客户端socket
+%% @param Len::non_neg_integer() 一次性从socket读取多少字节的数据, 0 表示全部
+%% @param Timeout::integer() 读取超时时间(毫秒), -1 表示不超时.
+%% @return binary() 读取到的数据.
+%% @end
+-spec(async_recv(Socket :: port(), Len :: non_neg_integer(), Timeout :: integer()) ->
+  {ok, binary()} | {error, Reason :: term()}).
+async_recv(Sock, Length, Timeout) when is_port(Sock) ->
+  case prim_inet:async_recv(Sock, Length, Timeout) of
+    {error, Reason} -> {error, Reason};
+    {ok, Res} -> {ok, Res};
+    Res -> {ok, Res}
+  end;
+async_recv(_Sock, _Len, _Timeout) -> {error, "param[1] is not a port"}.
