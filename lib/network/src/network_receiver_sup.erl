@@ -26,7 +26,7 @@ init([Mod, Fun]) ->
   ?INFO("@@@@@@@@@@@@@@@@@"),
   ChildSpec = {
     Mod,
-    {Mod, Fun, []},
+    {Mod, Fun, []},% TODO is args needed
     temporary,
     2000000,
     worker,
