@@ -11,6 +11,7 @@
 -define(NETWORK_HRL, true).
 
 -include("logger.hrl").
+-include_lib("mixer/include/mixer.hrl").
 %% @doc
 %% Socket options.
 %% @see inet:setopts/2

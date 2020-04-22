@@ -38,9 +38,9 @@ start() ->
     ?INFO("******************* SIGMA STARTED [~p] *******************", [calendar:local_time()]),
     ok
   catch
-    _Type:_Error ->
+    Type:Error:Stack ->
       io:format("******************* SIGMA START FAILED *******************~n~p:~p~n~p~n",
-                [_Type, _Error, erlang:get_stacktrace()]),
+                [Type, Error, Stack]),
       init:stop(-1)
   end.
 
