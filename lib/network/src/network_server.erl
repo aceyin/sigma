@@ -78,7 +78,7 @@ handle_info({inet_async, SSock, Ref, {ok, CSock}},
   true = inet_db:register_socket(CSock, inet_tcp),
   ?DEBUG("Incoming client ServerSock:~p, Ref:~p, Sock:~p, State:~p", [SSock, Ref, CSock, State]),
   % 为每个新建立的客户端启动一个新的进程, 用来处理新的网络连接, 并将tcp控制权交给此进程
-  {_Mod, _Fun} = Rcv,
+  {Mod, _Fun} = Rcv,
   NewState =
   case supervisor:start_child(network_receiver_sup, []) of
     {ok, Pid} ->
@@ -89,8 +89,8 @@ handle_info({inet_async, SSock, Ref, {ok, CSock}},
       case gen_tcp:controlling_process(CSock, Pid) of
         ok ->
           ?DEBUG("Socket controlling process moved from network to ~p", [Pid]),
-%%          Mod:take_over(Pid, CSock),
-          gen_server:cast(Pid, {active, CSock}),
+          Mod:take_over(Pid, CSock),
+%%          gen_server:cast(Pid, {active, CSock}),
           State#net_state{count = Count + 1};
         {error, Reason} ->
           ?ERROR("Error while assign socket to process reason: ~p", [Reason]),

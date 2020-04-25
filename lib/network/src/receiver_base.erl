@@ -1,9 +1,10 @@
 %%%-------------------------------------------------------------------
 %%% @author ace
-%%% @copyright (C) 2020, <COMPANY>
 %%% @doc
 %%% network_receiver 的基础封装
 %%% 可以使用 -mixin([base_receiver]) 来 "继承" 本模块的函数, 从而减少重复的代码.
+%%% 该 network_base 模块实现了 gen_server 所有的回调, 因此每个 network_receiver 行为
+%%% 的实现者可以使用 gen_server:start_link/4 来启动.
 %%% @end
 %%% Created : 21. 4月 2020 10:54 下午
 %%%-------------------------------------------------------------------
@@ -12,8 +13,20 @@
 -include("logger.hrl").
 -record(state, {}).
 %% API
--export([take_over/2, handle_call/3, handle_cast/2, handle_info/2]).
+-export([
+  init/1, take_over/2,
+  handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3
+]).
 
+-define(RECEIVER_MOD, receiver_mod).
+
+%% @doc Initializes the server @end
+init([Mod | Args]) ->
+  process_flag(trap_exit, true),
+  ?DEBUG("!!!! Args:::~p", [Args]),
+  % the ready function is defined in the specific receiver module.
+  erlang:put(?RECEIVER_MOD, Mod),
+  Mod:ready(Args).
 
 %% @doc
 %% 接管刚刚新建立的客户端连接.
@@ -26,7 +39,6 @@
 take_over(Pid, CSock) ->
   gen_server:cast(Pid, {active, CSock}).
 
-%% @private
 %% @doc
 %% gen_server 的 handle_call 回调函数.
 %% 注: [] 内的为可选参数.
@@ -34,7 +46,8 @@ take_over(Pid, CSock) ->
 %% @end
 handle_call(Request, From, State) ->
   try
-    ?MODULE:on_call(Request, From, State)
+    Mod = erlang:get(?RECEIVER_MOD),
+    Mod:on_call(Request, From, State)
   catch
     Err:Reason:Stack ->
       ?ERROR("Error while process on_call(~p,~p,~p), error:~p, reason:~p, stacktrace:~p",
@@ -61,7 +74,8 @@ handle_cast(_Request, State) ->
 %% 用来处理异步网络数据.
 %% @end
 handle_info({inet_async, CSock, _Ref, {ok, Data}}, State) ->
-  ?MODULE:on_receive(Data),
+  Mod = erlang:get(?RECEIVER_MOD),
+  Mod:on_receive(Data),
   async_recv(CSock, 0, -1),
   {noreply, State};
 handle_info(_Info, State) ->
