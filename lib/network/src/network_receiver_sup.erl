@@ -32,8 +32,8 @@ init([Mod, Fun]) ->
     % 亦即 network 配置参数的 receiver 中配置的 mod
     Mod,
     % network_receiver 实例的启动规范,
-    % 因为使用了 mixin 的方式减少代码重复, 所以在 args 里面需要
-    % 动态将 Mod 再传递进去一次.
+    % 因为每个 receiver 都 mixin 了 receiver_base 的通用部分,为了在 receiver_base 中能
+    % 调用到具体的 receiver 的callback函数, 所以在 args 里面需要将 Mod 再传递进去一次.
     {Mod, Fun, [Mod]},
     temporary,
     2000000,
