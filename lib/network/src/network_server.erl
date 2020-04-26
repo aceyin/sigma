@@ -80,25 +80,10 @@ handle_info({inet_async, SSock, Ref, {ok, CSock}},
   % 为每个新建立的客户端启动一个新的进程, 用来处理新的网络连接, 并将tcp控制权交给此进程
   {Mod, _Fun} = Rcv,
   NewState =
-  case supervisor:start_child(network_receiver_sup, []) of
-    {ok, Pid} ->
-      ?DEBUG("Starting child for handle network connection, child:~p", [Pid]),
-      % 因 network 非法关闭时无需通知子进程,因而将子进程与 network 的监控关系改为单向的 monitor
-      _MonitorRef = erlang:monitor(process, Pid),
-      true = erlang:unlink(Pid),
-      case gen_tcp:controlling_process(CSock, Pid) of
-        ok ->
-          ?DEBUG("Socket controlling process moved from network to ~p", [Pid]),
-          Mod:take_over(Pid, CSock),
-%%          gen_server:cast(Pid, {active, CSock}),
-          State#net_state{count = Count + 1};
-        {error, Reason} ->
-          ?ERROR("Error while assign socket to process reason: ~p", [Reason]),
-          gen_tcp:close(CSock),
-          State
-      end;
-    Error ->
-      ?ERROR("Error handle new client connection, reason: ~p", [Error]),
+  case Mod:take_over(Mod, CSock) of
+    {ok, _Pid} -> State#net_state{count = Count + 1};
+    {error, Reason} ->
+      ?ERROR("Error while assign socket to process reason: ~p", [Reason]),
       gen_tcp:close(CSock),
       State
   end,

@@ -19,14 +19,22 @@
 start_link([Mod, Fun]) ->
   supervisor:start_link({local, ?MODULE}, ?MODULE, [Mod, Fun]).
 
-%%%===================================================================
-%%% Supervisor callbacks
-%%%===================================================================
+%% @doc
+%% 所有 socket 接管进程的 supervisor 模块.
+%% 每当有新的客户端连接过来时, 会使用 sigma.config 中 receiver 选项
+%% 配置的模块作为该连接的处理进程. network_server 会为每个新的 socket
+%% 创建一个单独的进程来负责该 socket 的处理, 本 supervisor 就是负责创建
+%% network_receiver 进程的.
+%% @end
 init([Mod, Fun]) ->
-  ?INFO("@@@@@@@@@@@@@@@@@"),
   ChildSpec = {
+    % network_receiver 实例的模块名,
+    % 亦即 network 配置参数的 receiver 中配置的 mod
     Mod,
-    {Mod, Fun, []},% TODO is args needed
+    % network_receiver 实例的启动规范,
+    % 因为使用了 mixin 的方式减少代码重复, 所以在 args 里面需要
+    % 动态将 Mod 再传递进去一次.
+    {Mod, Fun, [Mod]},
     temporary,
     2000000,
     worker,

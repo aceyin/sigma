@@ -11,33 +11,55 @@
 -module(receiver_base).
 -author("ace").
 -include("logger.hrl").
--record(state, {}).
 %% API
 -export([
+  start_link/1,
   init/1, take_over/2,
   handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3
 ]).
 
 -define(RECEIVER_MOD, receiver_mod).
 
-%% @doc Initializes the server @end
-init([Mod | Args]) ->
-  process_flag(trap_exit, true),
-  ?DEBUG("!!!! Args:::~p", [Args]),
-  % the ready function is defined in the specific receiver module.
-  erlang:put(?RECEIVER_MOD, Mod),
-  Mod:ready(Args).
-
 %% @doc
-%% 接管刚刚新建立的客户端连接.
-%% 该函数会在 network_server 中被调用.
+%% 创建一个新的 network_receiver 进程来接管刚刚新建立的客户端连接.
+%% 该函数会在 network_server 进程中被调用.
 %% 调用之前必须有一个新的用来处理后续网络数据的进程已经启动了.
 %% @param CSock::port() 代表客户端连接的 socket 引用.
-%% @param Pid::pid() 即将接管 CSock 的进程ID.
+%% @param Mod::module() 即将接管 CSock 的 receiver 模块名.
 %% @end
--spec(take_over(Pid :: pid(), CSock :: port()) -> ok).
-take_over(Pid, CSock) ->
-  gen_server:cast(Pid, {active, CSock}).
+-spec(take_over(Mod :: module(), CSock :: port()) -> ok).
+take_over(Mod, CSock) ->
+  ?DEBUG("!!!^^^ take over socket, mod:~p", [Mod]),
+  case supervisor:start_child(network_receiver_sup, []) of
+    {ok, Pid} ->
+      ?DEBUG("Starting child for handle network connection, child:~p", [Pid]),
+      % 因 network 非法关闭时无需通知子进程,因而将子进程与 network 的监控关系改为单向的 monitor
+      _MonitorRef = erlang:monitor(process, Pid),
+      true = erlang:unlink(Pid),
+      case gen_tcp:controlling_process(CSock, Pid) of
+        ok ->
+          ?DEBUG("Socket controlling process moved from network to ~p", [Pid]),
+          gen_server:cast(Pid, {active, CSock}),
+          {ok, Pid};
+        {error, Reason} ->
+          ?ERROR("Error while assign socket to process reason: ~p", [Reason]),
+          {error, Reason}
+      end;
+    Error ->
+      ?ERROR("Error handle new client connection, reason: ~p", [Error]),
+      {error, Error}
+  end.
+
+start_link(Mod) ->
+  ?INFO("~p server start_link called", [Mod]),
+  gen_server:start_link({local, ?MODULE}, ?MODULE, [Mod], []).
+
+%% @doc Initializes the server @end
+init([Mod]) ->
+  process_flag(trap_exit, true),
+  % the ready function is defined in the specific receiver module.
+  erlang:put(?RECEIVER_MOD, Mod),
+  Mod:ready(Mod).
 
 %% @doc
 %% gen_server 的 handle_call 回调函数.
@@ -75,6 +97,7 @@ handle_cast(_Request, State) ->
 %% @end
 handle_info({inet_async, CSock, _Ref, {ok, Data}}, State) ->
   Mod = erlang:get(?RECEIVER_MOD),
+  ?DEBUG("~~~~~~~~ Mod=~p", [Mod]),
   Mod:on_receive(Data),
   async_recv(CSock, 0, -1),
   {noreply, State};
