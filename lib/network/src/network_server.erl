@@ -74,11 +74,10 @@ handle_cast(_Request, State) ->
 %% 这一系列 handle_info({inet_xxx) 相关的函数就是用来接收网卡模块发送的连接信息的.
 %% @end
 handle_info({inet_async, SSock, Ref, {ok, CSock}},
-            State = #net_state{server_socket = SSock, ref = Ref, count = Count, receiver = Rcv}) ->
+            State = #net_state{server_socket = SSock, ref = Ref, count = Count, receiver = Mod}) ->
   true = inet_db:register_socket(CSock, inet_tcp),
   ?DEBUG("Incoming client ServerSock:~p, Ref:~p, Sock:~p, State:~p", [SSock, Ref, CSock, State]),
   % 为每个新建立的客户端启动一个新的进程, 用来处理新的网络连接, 并将tcp控制权交给此进程
-  {Mod, _Fun} = Rcv,
   NewState =
   case Mod:take_over(Mod, CSock) of
     {ok, _Pid} -> State#net_state{count = Count + 1};

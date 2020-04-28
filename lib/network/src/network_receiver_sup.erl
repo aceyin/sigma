@@ -16,8 +16,8 @@
 %% Supervisor callbacks
 -export([init/1]).
 
-start_link([Mod, Fun]) ->
-  supervisor:start_link({local, ?MODULE}, ?MODULE, [Mod, Fun]).
+start_link([Mod]) ->
+  supervisor:start_link({local, ?MODULE}, ?MODULE, [Mod]).
 
 %% @doc
 %% 所有 socket 接管进程的 supervisor 模块.
@@ -26,7 +26,7 @@ start_link([Mod, Fun]) ->
 %% 创建一个单独的进程来负责该 socket 的处理, 本 supervisor 就是负责创建
 %% network_receiver 进程的.
 %% @end
-init([Mod, Fun]) ->
+init([Mod]) ->
   ChildSpec = {
     % network_receiver 实例的模块名,
     % 亦即 network 配置参数的 receiver 中配置的 mod
@@ -34,7 +34,7 @@ init([Mod, Fun]) ->
     % network_receiver 实例的启动规范,
     % 因为每个 receiver 都 mixin 了 receiver_base 的通用部分,为了在 receiver_base 中能
     % 调用到具体的 receiver 的callback函数, 所以在 args 里面需要将 Mod 再传递进去一次.
-    {Mod, Fun, [Mod]},
+    {Mod, start_link, [Mod]},
     temporary,
     2000000,
     worker,

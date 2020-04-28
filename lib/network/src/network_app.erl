@@ -24,8 +24,8 @@ start(_Type, _Args) ->
         undefined -> error("No network config found in sigma_config");
         {ok, Map} ->
           ?DEBUG("Starting network server with config: ~p", [Map]),
-          #{receiver := {Mod, Fun}} = Map,
-          {ok, _Sup2} = network_receiver_sup:start_link([Mod, Fun])
+          #{receiver := Mod} = Map,
+          {ok, _Sup2} = network_receiver_sup:start_link([Mod])
       end,
       {ok, Sup};
     Error -> Error

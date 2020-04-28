@@ -7,6 +7,6 @@
 -module(network_receiver).
 -include("logger.hrl").
 
--callback(on_receive(Data :: any()) -> term()).
+-callback(on_receive(Data :: any()) -> {ok, term()}).
 -callback(ready(Args :: term()) -> {ok, State :: term()}).
 -optional_callbacks([ready/1]).
